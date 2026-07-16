@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build pinned toolchain
+        run: docker compose build toolchain
+
+      - name: Verify frozen dependencies
+        run: docker compose run --rm toolchain pnpm install --frozen-lockfile
+
+      - name: Run canonical gate
+        run: docker compose run --rm toolchain pnpm check
