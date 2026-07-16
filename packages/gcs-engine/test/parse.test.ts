@@ -55,6 +55,13 @@ describe("parseGcsV5", () => {
     });
   });
 
+  it("rejects version 1", () => {
+    expectGcsError(() => parseGcsV5('{"version":1}'), {
+      code: "UNSUPPORTED_VERSION",
+      path: "/version",
+    });
+  });
+
   it("rejects version 6", () => {
     expectGcsError(() => parseGcsV5('{"version":6}'), {
       code: "UNSUPPORTED_VERSION",

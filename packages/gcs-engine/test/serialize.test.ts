@@ -40,6 +40,19 @@ describe("serializeGcsV5", () => {
     expect(JSON.parse(output)).toEqual(document);
   });
 
+  it("preserves the distinction between empty and absent collections", () => {
+    const withEmptySkills = parseGcsV5('{"version":5,"skills":[]}');
+    const withoutSkills = parseGcsV5('{"version":5}');
+
+    expect(parseGcsV5(serializeGcsV5(withEmptySkills))).toEqual({
+      version: 5,
+      skills: [],
+    });
+    expect(parseGcsV5(serializeGcsV5(withoutSkills))).not.toHaveProperty(
+      "skills",
+    );
+  });
+
   it("rejects an in-memory document without a version", () => {
     expectGcsError(() => serializeGcsV5({} as GcsDocumentV5), {
       code: "MISSING_VERSION",
