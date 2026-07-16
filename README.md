@@ -58,6 +58,9 @@ Only GCS data version 5 is supported. Versions 1 through 4 and version 6 or
 later are rejected. The engine does not repair data, generate IDs, recalculate
 values, or mutate character state.
 
+Consumers can inspect the package manifest's `gcsCapabilities` field for the
+machine-readable data-version support policy.
+
 ## GCS oracle and conformance
 
 `tools/gcs-oracle` is a JSONL Go CLI pinned to

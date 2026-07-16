@@ -2,6 +2,8 @@
 
 Strict, runtime-dependency-free parsing and serialization for GCS data version 5.
 
+Machine-readable data-version support is declared in the package manifest's `gcsCapabilities` field.
+
 ```ts
 import { parseGcsV5, serializeGcsV5 } from "@gcs/gcs-engine";
 

@@ -4,6 +4,19 @@
   "type": "module",
   "sideEffects": false,
   "license": "MPL-2.0",
+  "gcsCapabilities": {
+    "dataVersions": {
+      "supported": [
+        5
+      ],
+      "unsupported": [
+        2,
+        3,
+        4
+      ],
+      "unlisted": "unsupported"
+    }
+  },
   "files": [
     "dist",
     "LICENSE",
