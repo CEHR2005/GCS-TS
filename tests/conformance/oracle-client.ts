@@ -1,14 +1,20 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 
-export type OracleResponse =
-  | { id: string; ok: true; document: unknown }
-  | { id: string; ok: false; category: string; message: string };
+import { parseOracleResponse, type OracleResponse } from "./oracle-protocol";
+
+export type {
+  OracleDocument,
+  OracleErrorCategory,
+  OracleResponse,
+} from "./oracle-protocol";
 
 type OracleClientOptions = {
   command?: string;
   args?: string[];
   cwd?: string;
+  shutdownGraceMs?: number;
+  killGraceMs?: number;
 };
 
 type PendingRequest = {
@@ -16,15 +22,25 @@ type PendingRequest = {
   reject: (error: Error) => void;
 };
 
+const defaultShutdownGraceMs = 1_000;
+const defaultKillGraceMs = 1_000;
+
 export class GcsOracleClient {
   readonly #child: ChildProcessWithoutNullStreams;
   readonly #pending = new Map<string, PendingRequest>();
   readonly #completedIds = new Set<string>();
   readonly #closed: Promise<void>;
+  readonly #shutdownGraceMs: number;
+  readonly #killGraceMs: number;
+  readonly #usesProcessGroup = process.platform !== "win32";
   #resolveClosed!: () => void;
   #stderr = "";
   #terminalError?: Error;
   #closing = false;
+  #hasClosed = false;
+  #shutdownTimer: NodeJS.Timeout | undefined;
+  #killTimer: NodeJS.Timeout | undefined;
+  #shutdownEscalation?: "SIGTERM" | "SIGKILL";
 
   constructor(options: OracleClientOptions = {}) {
     const command = options.command ?? "go";
@@ -34,11 +50,17 @@ export class GcsOracleClient {
       "run",
       "./cmd/gcs-oracle",
     ];
+    this.#shutdownGraceMs = validTimeout(
+      options.shutdownGraceMs,
+      defaultShutdownGraceMs,
+    );
+    this.#killGraceMs = validTimeout(options.killGraceMs, defaultKillGraceMs);
     this.#closed = new Promise((resolve) => {
       this.#resolveClosed = resolve;
     });
     this.#child = spawn(command, args, {
       cwd: options.cwd ?? process.cwd(),
+      detached: this.#usesProcessGroup,
       stdio: ["pipe", "pipe", "pipe"],
     });
     this.#listen();
@@ -71,7 +93,7 @@ export class GcsOracleClient {
   async close(): Promise<void> {
     if (!this.#closing) {
       this.#closing = true;
-      this.#child.stdin.end();
+      this.#beginGracefulShutdown();
     }
     await this.#closed;
     if (this.#terminalError) {
@@ -90,27 +112,29 @@ export class GcsOracleClient {
       this.#stderr += chunk;
     });
     this.#child.on("error", (error) => {
-      this.#fail(new Error(`start GCS oracle: ${error.message}`));
-      this.#resolveClosed();
+      this.#fail(new Error(`start GCS oracle: ${error.message}`), false);
     });
     this.#child.on("close", (code, signal) => {
+      this.#hasClosed = true;
+      this.#clearShutdownTimers();
+      if (!this.#terminalError && this.#shutdownEscalation) {
+        this.#setTerminalError(this.#forcedShutdownError(code, signal));
+      }
       if (!this.#terminalError && code !== 0) {
         const status =
           code === null ? `signal ${signal ?? "unknown"}` : `exit code ${code}`;
         const stderr = this.#stderr.trim();
-        this.#fail(
+        this.#setTerminalError(
           new Error(
             `GCS oracle process failed with ${status}${stderr ? `: ${stderr}` : ""}`,
           ),
-          false,
         );
       }
       if (!this.#terminalError && this.#pending.size > 0) {
-        this.#fail(
+        this.#setTerminalError(
           new Error(
             `missing response ids: ${[...this.#pending.keys()].join(", ")}`,
           ),
-          false,
         );
       }
       this.#resolveClosed();
@@ -138,7 +162,7 @@ export class GcsOracleClient {
       this.#fail(new Error(`${kind} response id: ${value.id}`));
       return;
     }
-    const response = parseResponse(value);
+    const response = parseOracleResponse(value);
     if (response instanceof Error) {
       this.#fail(response);
       return;
@@ -151,38 +175,114 @@ export class GcsOracleClient {
 
   #fail(error: Error, terminate = true): void {
     if (this.#terminalError) return;
+    this.#setTerminalError(error);
+    if (terminate) {
+      this.#beginForcedShutdown();
+    }
+  }
+
+  #setTerminalError(error: Error): void {
+    if (this.#terminalError) return;
     this.#terminalError = error;
     for (const pending of this.#pending.values()) {
       pending.reject(error);
     }
     this.#pending.clear();
-    if (terminate && this.#child.exitCode === null) {
-      this.#child.kill();
+  }
+
+  #beginGracefulShutdown(): void {
+    if (this.#hasClosed) return;
+    this.#child.stdin.end();
+    this.#shutdownTimer = setTimeout(() => {
+      this.#shutdownTimer = undefined;
+      this.#beginForcedShutdown();
+    }, this.#shutdownGraceMs);
+  }
+
+  #beginForcedShutdown(): void {
+    if (this.#hasClosed || this.#shutdownEscalation) return;
+    if (this.#shutdownTimer) {
+      clearTimeout(this.#shutdownTimer);
+      this.#shutdownTimer = undefined;
+    }
+    this.#shutdownEscalation = "SIGTERM";
+    this.#signalProcessGroup("SIGTERM");
+    this.#killTimer = setTimeout(() => {
+      this.#killTimer = undefined;
+      if (this.#hasClosed) return;
+      this.#shutdownEscalation = "SIGKILL";
+      this.#signalProcessGroup("SIGKILL");
+    }, this.#killGraceMs);
+  }
+
+  #signalProcessGroup(signal: NodeJS.Signals): void {
+    const pid = this.#child.pid;
+    if (pid === undefined) return;
+    try {
+      if (this.#usesProcessGroup) {
+        process.kill(-pid, signal);
+      } else {
+        this.#child.kill(signal);
+      }
+    } catch (error) {
+      if (!isNoSuchProcess(error)) {
+        let fallbackError: unknown;
+        try {
+          this.#child.kill(signal);
+        } catch (caught) {
+          fallbackError = caught;
+        }
+        this.#setTerminalError(
+          new Error(
+            `signal GCS oracle process group with ${signal}: ${String(error)}${fallbackError ? `; direct fallback failed: ${String(fallbackError)}` : ""}`,
+          ),
+        );
+      }
     }
   }
+
+  #clearShutdownTimers(): void {
+    if (this.#shutdownTimer) clearTimeout(this.#shutdownTimer);
+    if (this.#killTimer) clearTimeout(this.#killTimer);
+    this.#shutdownTimer = undefined;
+    this.#killTimer = undefined;
+  }
+
+  #forcedShutdownError(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+  ): Error {
+    const escalation =
+      this.#shutdownEscalation === "SIGKILL"
+        ? `sent SIGTERM, then SIGKILL after ${this.#killGraceMs}ms`
+        : "sent SIGTERM";
+    const status =
+      code === null ? `signal ${signal ?? "unknown"}` : `exit code ${code}`;
+    const stderr = this.#stderr.trim();
+    return new Error(
+      `GCS oracle did not exit within ${this.#shutdownGraceMs}ms after stdin EOF; ${escalation}; closed with ${status}${stderr ? `: ${stderr}` : ""}`,
+    );
+  }
+}
+
+function validTimeout(value: number | undefined, fallback: number): number {
+  if (value === undefined) return fallback;
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(
+      "GCS oracle shutdown timeouts must be finite non-negative numbers",
+    );
+  }
+  return value;
+}
+
+function isNoSuchProcess(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    (error as NodeJS.ErrnoException).code === "ESRCH"
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function parseResponse(value: Record<string, unknown>): OracleResponse | Error {
-  if (typeof value.id !== "string" || typeof value.ok !== "boolean") {
-    return new Error("GCS oracle response has an invalid shape");
-  }
-  if (value.ok) {
-    if (!("document" in value)) {
-      return new Error(`GCS oracle success ${value.id} is missing document`);
-    }
-    return { id: value.id, ok: true, document: value.document };
-  }
-  if (typeof value.category !== "string" || typeof value.message !== "string") {
-    return new Error(`GCS oracle failure ${value.id} has an invalid shape`);
-  }
-  return {
-    id: value.id,
-    ok: false,
-    category: value.category,
-    message: value.message,
-  };
 }

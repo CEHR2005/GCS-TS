@@ -10,7 +10,47 @@ function nodeOracle(source: string): GcsOracleClient {
   return new GcsOracleClient({ command: execPath, args: ["-e", source] });
 }
 
+function responseOracle(response: unknown): GcsOracleClient {
+  const line = `${JSON.stringify(response)}\n`;
+  return nodeOracle(`
+    process.stdin.once("data", () => {
+      process.stdout.write(${JSON.stringify(line)});
+      process.stdin.unref();
+    });
+  `);
+}
+
 describe("GcsOracleClient protocol validation", () => {
+  it.each([null, [], "not-an-object"])(
+    "rejects a success response with document %j",
+    async (document) => {
+      const oracle = responseOracle({ id: "case", ok: true, document });
+      try {
+        await expect(oracle.normalize("case", validDocument)).rejects.toThrow(
+          "success case has an invalid document",
+        );
+      } finally {
+        await oracle.close().catch(() => undefined);
+      }
+    },
+  );
+
+  it("rejects an unknown failure category", async () => {
+    const oracle = responseOracle({
+      id: "case",
+      ok: false,
+      category: "surprise",
+      message: "unknown category",
+    });
+    try {
+      await expect(oracle.normalize("case", validDocument)).rejects.toThrow(
+        "failure case has an invalid category",
+      );
+    } finally {
+      await oracle.close().catch(() => undefined);
+    }
+  });
+
   it("rejects an unknown response id", async () => {
     const oracle = nodeOracle(`
       process.stdin.once("data", () => {
