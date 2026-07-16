@@ -70,6 +70,64 @@ describe("GcsOracleClient protocol failures", () => {
 
 describe("GcsOracleClient bounded shutdown", () => {
   it.runIf(process.platform !== "win32")(
+    "kills descendants when the process-group leader exits on SIGTERM",
+    async () => {
+      const childSource = `
+        process.on("SIGTERM", () => {});
+        setInterval(() => {}, 1000);
+        setTimeout(() => process.exit(0), 10000);
+      `;
+      const oracle = new GcsOracleClient({
+        command: execPath,
+        args: [
+          "-e",
+          `
+            const { spawn } = require("node:child_process");
+            const child = spawn(process.execPath, ["-e", ${JSON.stringify(childSource)}], {
+              stdio: "ignore",
+            });
+            process.stdin.once("data", (chunk) => {
+              const request = JSON.parse(chunk.toString());
+              process.stdout.write(JSON.stringify({
+                id: request.id,
+                ok: true,
+                document: { parentPid: process.pid, childPid: child.pid },
+              }) + "\\n");
+            });
+            setInterval(() => {}, 1000);
+            setTimeout(() => process.exit(0), 10000);
+          `,
+        ],
+        shutdownGraceMs: 50,
+        killGraceMs: 500,
+      });
+      let parentPid: number | undefined;
+      let childPid: number | undefined;
+      try {
+        const response = await oracle.normalize("case", validDocument);
+        if (!response.ok) throw new Error(response.message);
+        const reportedParentPid = response.document.parentPid;
+        const reportedChildPid = response.document.childPid;
+        if (
+          typeof reportedParentPid !== "number" ||
+          typeof reportedChildPid !== "number"
+        ) {
+          throw new Error("test oracle returned invalid process ids");
+        }
+        parentPid = reportedParentPid;
+        childPid = reportedChildPid;
+        await expect(oracle.close()).rejects.toThrow(/SIGTERM.*SIGKILL/s);
+        await expectProcessTerminated(childPid);
+      } finally {
+        await oracle.close().catch(() => undefined);
+        if (parentPid !== undefined) forceKill(-parentPid);
+        if (childPid !== undefined) forceKill(childPid);
+      }
+    },
+    5_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
     "kills the complete process group after EOF and SIGTERM are ignored",
     async () => {
       const childSource = `
@@ -164,4 +222,12 @@ function isErrorCode(error: unknown, code: string): boolean {
     "code" in error &&
     (error as NodeJS.ErrnoException).code === code
   );
+}
+
+function forceKill(pid: number): void {
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch (error) {
+    if (!isNoSuchProcess(error)) throw error;
+  }
 }

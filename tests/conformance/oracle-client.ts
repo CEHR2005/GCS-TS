@@ -41,6 +41,7 @@ export class GcsOracleClient {
   #shutdownTimer: NodeJS.Timeout | undefined;
   #killTimer: NodeJS.Timeout | undefined;
   #shutdownEscalation?: "SIGTERM" | "SIGKILL";
+  #sigkillReason?: "grace-expired" | "leader-closed";
 
   constructor(options: OracleClientOptions = {}) {
     const command = options.command ?? "go";
@@ -116,6 +117,11 @@ export class GcsOracleClient {
     });
     this.#child.on("close", (code, signal) => {
       this.#hasClosed = true;
+      if (this.#shutdownEscalation === "SIGTERM" && this.#usesProcessGroup) {
+        this.#shutdownEscalation = "SIGKILL";
+        this.#sigkillReason = "leader-closed";
+        this.#signalProcessGroup("SIGKILL");
+      }
       this.#clearShutdownTimers();
       if (!this.#terminalError && this.#shutdownEscalation) {
         this.#setTerminalError(this.#forcedShutdownError(code, signal));
@@ -211,6 +217,7 @@ export class GcsOracleClient {
       this.#killTimer = undefined;
       if (this.#hasClosed) return;
       this.#shutdownEscalation = "SIGKILL";
+      this.#sigkillReason = "grace-expired";
       this.#signalProcessGroup("SIGKILL");
     }, this.#killGraceMs);
   }
@@ -254,7 +261,9 @@ export class GcsOracleClient {
   ): Error {
     const escalation =
       this.#shutdownEscalation === "SIGKILL"
-        ? `sent SIGTERM, then SIGKILL after ${this.#killGraceMs}ms`
+        ? this.#sigkillReason === "leader-closed"
+          ? "sent SIGTERM, then SIGKILL when the process-group leader closed"
+          : `sent SIGTERM, then SIGKILL after ${this.#killGraceMs}ms`
         : "sent SIGTERM";
     const status =
       code === null ? `signal ${signal ?? "unknown"}` : `exit code ${code}`;
