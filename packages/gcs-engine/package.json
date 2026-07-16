@@ -1,0 +1,23 @@
+{
+  "name": "@gcs/gcs-engine",
+  "version": "0.0.0",
+  "type": "module",
+  "sideEffects": false,
+  "license": "MPL-2.0",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
