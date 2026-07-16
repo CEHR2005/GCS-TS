@@ -2,6 +2,9 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "paths": {
+      "@gcs/gcs-engine": ["./packages/gcs-engine/src/index.ts"]
+    },
     "types": ["node", "vitest/globals"]
   },
   "include": ["vitest.config.ts", "packages/**/*.ts", "tests/**/*.ts"]
