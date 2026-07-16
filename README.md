@@ -27,8 +27,8 @@ findings. CI executes the same Docker-first sequence.
 
 The base images are digest-pinned, but the Debian packages installed during
 the image build resolve from mutable Bookworm APT repositories. The toolchain
-is therefore reproducible from the checked-in source and current repositories,
-but it is not fully hermetic. Rebuild periodically with
+is rebuildable against the current Bookworm repository state, but it is not
+bit-for-bit reproducible or hermetic. Rebuild periodically with
 `docker compose build --no-cache toolchain` to detect upstream package drift.
 
 ## TypeScript API
@@ -81,11 +81,16 @@ To test an additional local corpus, mount it read-only and provide the required
 container path:
 
 ```sh
+export GCS_CORPUS_DIR=/absolute/path/to/gcs-corpus
 docker compose run --rm \
   --volume "$GCS_CORPUS_DIR:/corpus:ro" \
   --env GCS_CORPUS_DIR=/corpus \
   toolchain pnpm test:corpus
 ```
+
+The host `GCS_CORPUS_DIR` supplies the source of the read-only bind mount. The
+`--env` option independently sets the in-container path consumed by the corpus
+test to `/corpus`.
 
 Running `docker compose run --rm toolchain pnpm test:corpus` without the
 container environment variable fails with an explicit `GCS_CORPUS_DIR is
