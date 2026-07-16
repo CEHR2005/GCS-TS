@@ -45,12 +45,7 @@ GitHub Actions runs the same Docker-first gate on pushes and pull requests.
 export const GCS_DATA_VERSION = 5 as const;
 
 export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 export type GcsDocumentV5 = {
   version: 5;
@@ -69,13 +64,9 @@ export class GcsParseError extends Error {
   readonly path?: string;
 }
 
-export function parseGcsV5(
-  input: string | Uint8Array,
-): GcsDocumentV5;
+export function parseGcsV5(input: string | Uint8Array): GcsDocumentV5;
 
-export function serializeGcsV5(
-  document: GcsDocumentV5,
-): string;
+export function serializeGcsV5(document: GcsDocumentV5): string;
 ```
 
 `parseGcsV5` uses fatal UTF-8 decoding for byte input, strict JSON parsing, an object root check, and an exact `version === 5` check. It does not repair or normalize content.

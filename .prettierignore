@@ -1,0 +1,6 @@
+**/coverage
+**/dist
+fixtures
+.superpowers
+.worktrees
+pnpm-lock.yaml

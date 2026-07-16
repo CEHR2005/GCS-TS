@@ -1,0 +1,34 @@
+{
+  "name": "gcs-web-foundation",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.13.1",
+  "engines": {
+    "node": "24.18.0",
+    "pnpm": "11.13.1"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit && pnpm --filter @gcs/gcs-engine typecheck",
+    "test:unit": "vitest run packages/gcs-engine",
+    "test:oracle": "go -C tools/gcs-oracle test ./...",
+    "test:conformance": "vitest run tests/conformance",
+    "test:corpus": "vitest run tests/corpus",
+    "build": "pnpm --filter @gcs/gcs-engine build",
+    "deps:check": "pnpm list --depth Infinity",
+    "audit:prod": "pnpm audit --prod --audit-level high",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:oracle && pnpm test:conformance && pnpm build && pnpm deps:check && pnpm audit:prod"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "eslint": "10.7.0",
+    "prettier": "3.9.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.64.0",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  }
+}

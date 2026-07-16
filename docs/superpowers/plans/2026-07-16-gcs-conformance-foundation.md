@@ -25,12 +25,14 @@
 ### Task 1: Reproducible pnpm and Docker Workspace
 
 **Files:**
+
 - Create: `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `.node-version`, `.npmrc`
 - Create: `tsconfig.base.json`, `tsconfig.test.json`, `vitest.config.ts`, `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`
 - Create: `docker/toolchain.Dockerfile`, `compose.yml`, `.dockerignore`
 - Test: Docker image build, frozen install, tool version checks
 
 **Interfaces:**
+
 - Produces: root scripts `format`, `format:check`, `lint`, `typecheck`, `test:unit`, `test:oracle`, `test:conformance`, `test:corpus`, `build`, `deps:check`, `audit:prod`, and `check`.
 - Produces: a `toolchain` Compose service containing Node, pnpm, and Go; Task 3 adds the compiled `gcs-oracle` binary.
 
@@ -63,7 +65,7 @@ Use this root package contract:
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:oracle && pnpm test:conformance && pnpm build && pnpm deps:check && pnpm audit:prod"
   },
   "devDependencies": {
-    "@eslint/js": "10.7.0",
+    "@eslint/js": "10.0.1",
     "@types/node": "24.13.3",
     "eslint": "10.7.0",
     "prettier": "3.9.5",
@@ -122,12 +124,14 @@ git commit -m "build: add pinned Docker pnpm workspace"
 ### Task 2: Strict GCS v5 TypeScript API
 
 **Files:**
+
 - Create: `packages/gcs-engine/package.json`, `packages/gcs-engine/tsconfig.json`, `packages/gcs-engine/tsconfig.build.json`
 - Create: `packages/gcs-engine/src/types.ts`, `errors.ts`, `validate.ts`, `parse.ts`, `serialize.ts`, `index.ts`
 - Create: `packages/gcs-engine/test/parse.test.ts`, `serialize.test.ts`
 - Create: `packages/gcs-engine/LICENSE`, `packages/gcs-engine/README.md`
 
 **Interfaces:**
+
 - Produces: `GCS_DATA_VERSION`, `JsonValue`, `GcsDocumentV5`, `GcsParseErrorCode`, `GcsParseError`, `parseGcsV5`, and `serializeGcsV5` exactly as specified by the design.
 - Produces: ESM JavaScript and declaration files in `packages/gcs-engine/dist`.
 
@@ -136,13 +140,27 @@ git commit -m "build: add pinned Docker pnpm workspace"
 Cover these exact cases in `parse.test.ts`:
 
 ```ts
-expect(parseGcsV5('{"version":5,"name":"Åsa"}')).toEqual({ version: 5, name: "Åsa" });
-expectGcsError(() => parseGcsV5(new Uint8Array([0xff])), { code: "INVALID_UTF8" });
-expectGcsError(() => parseGcsV5('{'), { code: "INVALID_JSON" });
-expectGcsError(() => parseGcsV5('[]'), { code: "ROOT_NOT_OBJECT" });
-expectGcsError(() => parseGcsV5('{}'), { code: "MISSING_VERSION", path: "/version" });
-expectGcsError(() => parseGcsV5('{"version":4}'), { code: "UNSUPPORTED_VERSION", path: "/version" });
-expectGcsError(() => parseGcsV5('{"version":6}'), { code: "UNSUPPORTED_VERSION", path: "/version" });
+expect(parseGcsV5('{"version":5,"name":"Åsa"}')).toEqual({
+  version: 5,
+  name: "Åsa",
+});
+expectGcsError(() => parseGcsV5(new Uint8Array([0xff])), {
+  code: "INVALID_UTF8",
+});
+expectGcsError(() => parseGcsV5("{"), { code: "INVALID_JSON" });
+expectGcsError(() => parseGcsV5("[]"), { code: "ROOT_NOT_OBJECT" });
+expectGcsError(() => parseGcsV5("{}"), {
+  code: "MISSING_VERSION",
+  path: "/version",
+});
+expectGcsError(() => parseGcsV5('{"version":4}'), {
+  code: "UNSUPPORTED_VERSION",
+  path: "/version",
+});
+expectGcsError(() => parseGcsV5('{"version":6}'), {
+  code: "UNSUPPORTED_VERSION",
+  path: "/version",
+});
 ```
 
 Implement `expectGcsError` in the test file with `try/catch`, `expect(error).toBeInstanceOf(GcsParseError)`, and `expect(error).toMatchObject(expected)` so the tests use supported Vitest matchers.
@@ -168,18 +186,22 @@ Expected: PASS with seven parser cases.
 Cover semantic preservation and formatting:
 
 ```ts
-const document = parseGcsV5(JSON.stringify({
-  version: 5,
-  profile: { name: "Ирина" },
-  third_party: { nested: [true, 1.25, { value: "未知" }] },
-  unknown_extension: { enabled: false },
-}));
+const document = parseGcsV5(
+  JSON.stringify({
+    version: 5,
+    profile: { name: "Ирина" },
+    third_party: { nested: [true, 1.25, { value: "未知" }] },
+    unknown_extension: { enabled: false },
+  }),
+);
 const output = serializeGcsV5(document);
 expect(output.endsWith("\n")).toBe(true);
 expect(output.endsWith("\n\n")).toBe(false);
 expect(output).toContain('\n\t"profile"');
 expect(JSON.parse(output)).toEqual(document);
-expectGcsError(() => serializeGcsV5({} as GcsDocumentV5), { code: "MISSING_VERSION" });
+expectGcsError(() => serializeGcsV5({} as GcsDocumentV5), {
+  code: "MISSING_VERSION",
+});
 ```
 
 - [ ] **Step 6: Run serializer tests to verify RED**
@@ -224,12 +246,14 @@ git commit -m "feat: add strict GCS v5 parse serialize API"
 ### Task 3: Official GCS Go Oracle
 
 **Files:**
+
 - Create: `tools/gcs-oracle/go.mod`, `go.sum`
 - Create: `tools/gcs-oracle/internal/oracle/oracle.go`, `oracle_test.go`
 - Create: `tools/gcs-oracle/cmd/gcs-oracle/main.go`
 - Modify: `docker/toolchain.Dockerfile`
 
 **Interfaces:**
+
 - Consumes: JSONL requests `{ id: string, op: "normalize", document: string }`.
 - Produces: JSONL success `{ id, ok: true, document }` or expected-data failure `{ id, ok: false, category, message }`.
 - Produces: non-zero process exit for malformed protocol input, unsupported operations, scanner errors, encoding errors, and internal failures.
@@ -294,12 +318,14 @@ git commit -m "test: add pinned official GCS oracle"
 ### Task 4: Curated Fixtures and Semantic Conformance
 
 **Files:**
+
 - Create: `fixtures/gcs-v5/manifest.json`, `THIRD_PARTY_NOTICES.md`, three `.gcs` fixtures
 - Create: `tests/conformance/oracle-client.ts`, `canonicalize.ts`, `conformance.test.ts`, `manifest.test.ts`
 - Create: `tests/corpus/corpus.test.ts`
 - Modify: `vitest.config.ts`, root package scripts only if test discovery requires it
 
 **Interfaces:**
+
 - Consumes: the `@gcs/gcs-engine` public API and `go -C tools/gcs-oracle run ./cmd/gcs-oracle`.
 - Produces: semantic equality between official normalization before and after the TypeScript round trip.
 - Produces: explicit extended-corpus command requiring `GCS_CORPUS_DIR`.
@@ -310,9 +336,18 @@ Use these file names and digests:
 
 ```json
 [
-  { "file": "wang-laowu.gcs", "sha256": "5fa73a3fdb65ae4e1780a4b50775bdd44eb010ddd3e315dce9b21eab53f4be55" },
-  { "file": "dragon-large-fire.gcs", "sha256": "929fb9b49af4ccf3b384e38f35e066c7b90b068a2030c6a86cd93519f19cd5a3" },
-  { "file": "lich.gcs", "sha256": "2176a0d593f20dc694a9530cee70c8909c1885f4654dfa071b0c5aa93b25fdd8" }
+  {
+    "file": "wang-laowu.gcs",
+    "sha256": "5fa73a3fdb65ae4e1780a4b50775bdd44eb010ddd3e315dce9b21eab53f4be55"
+  },
+  {
+    "file": "dragon-large-fire.gcs",
+    "sha256": "929fb9b49af4ccf3b384e38f35e066c7b90b068a2030c6a86cd93519f19cd5a3"
+  },
+  {
+    "file": "lich.gcs",
+    "sha256": "2176a0d593f20dc694a9530cee70c8909c1885f4654dfa071b0c5aa93b25fdd8"
+  }
 ]
 ```
 
@@ -365,11 +400,13 @@ git commit -m "test: prove GCS v5 semantic round trip"
 ### Task 5: CI, Documentation, and Full Verification Gate
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`, `README.md`, `packages/gcs-engine/AGENTS.md`
 - Modify: `.gitignore`, `.dockerignore`, package documentation as required by final checks
 - Test: complete Docker gate, clean-checkout rebuild, diff and file-size review
 
 **Interfaces:**
+
 - Produces: GitHub Actions for pushes and pull requests using the canonical Docker commands.
 - Produces: durable operational instructions for humans and future agents.
 

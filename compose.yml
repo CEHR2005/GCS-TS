@@ -1,0 +1,16 @@
+services:
+  toolchain:
+    build:
+      context: .
+      dockerfile: docker/toolchain.Dockerfile
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - node-modules:/workspace/node_modules
+      - pnpm-store:/pnpm/store
+      - go-build-cache:/tmp/go-build
+
+volumes:
+  node-modules:
+  pnpm-store:
+  go-build-cache:
