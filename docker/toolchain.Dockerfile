@@ -14,7 +14,7 @@ RUN apt-get update \
 WORKDIR /source
 
 COPY tools/gcs-oracle/go.mod tools/gcs-oracle/go.sum ./tools/gcs-oracle/
-COPY tools/gcs-primitives-oracle/go.mod ./tools/gcs-primitives-oracle/
+COPY tools/gcs-primitives-oracle/go.mod tools/gcs-primitives-oracle/go.sum ./tools/gcs-primitives-oracle/
 RUN go -C tools/gcs-oracle mod download
 RUN go -C tools/gcs-primitives-oracle mod download
 

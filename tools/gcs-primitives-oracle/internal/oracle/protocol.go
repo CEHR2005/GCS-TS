@@ -67,9 +67,21 @@ func buildResponse(id string, result any, category, message string) (response, e
 	return response, nil
 }
 
-func dispatch(op string, _ json.RawMessage) (result any, category string, message string, err error) {
-	if op != "meta.ping" {
+func dispatch(op string, args json.RawMessage) (result any, category string, message string, err error) {
+	switch op {
+	case "meta.ping":
+		return map[string]any{"protocolVersion": 1}, "", "", nil
+	case "fxp.parse":
+		return handleFxpParse(args)
+	case "fxp.format":
+		return handleFxpFormat(args)
+	case "fxp.add", "fxp.subtract", "fxp.multiply", "fxp.divide", "fxp.modulo", "fxp.min", "fxp.max":
+		return handleFxpBinary(op, args)
+	case "fxp.abs", "fxp.truncate", "fxp.floor", "fxp.ceil", "fxp.round":
+		return handleFxpUnary(op, args)
+	case "fxp.apply_rounding":
+		return handleFxpApplyRounding(args)
+	default:
 		return nil, "", "", fmt.Errorf("unknown operation %q", op)
 	}
-	return map[string]any{"protocolVersion": 1}, "", "", nil
 }
