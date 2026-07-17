@@ -16,6 +16,7 @@
     "test:oracle": "go -C tools/gcs-oracle test ./...",
     "test:primitives-oracle": "go -C tools/gcs-primitives-oracle test ./...",
     "test:conformance": "vitest run tests/conformance",
+    "test:primitives-conformance": "vitest run tests/primitives",
     "test:corpus": "vitest run tests/corpus",
     "build": "pnpm --filter @gcs/gcs-engine build",
     "test:package": "node tests/package-smoke.mjs",
