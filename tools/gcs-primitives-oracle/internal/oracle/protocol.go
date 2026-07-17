@@ -81,6 +81,8 @@ func dispatch(op string, args json.RawMessage) (result any, category string, mes
 		return handleFxpUnary(op, args)
 	case "fxp.apply_rounding":
 		return handleFxpApplyRounding(args)
+	case "tid.inspect":
+		return handleTIDInspect(args)
 	default:
 		return nil, "", "", fmt.Errorf("unknown operation %q", op)
 	}

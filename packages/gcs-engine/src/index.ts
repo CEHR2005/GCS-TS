@@ -30,6 +30,16 @@ export {
 } from "./primitive-errors.js";
 export { serializeGcsV5 } from "./serialize.js";
 export {
+  assertTidKind,
+  generateTid,
+  getTidKind,
+  isTid,
+  parseTid,
+  type Tid,
+  type TidKind,
+  type TidRandomSource,
+} from "./tid/index.js";
+export {
   GCS_DATA_VERSION,
   type GcsDocumentV5,
   type JsonValue,
