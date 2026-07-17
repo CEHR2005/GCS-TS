@@ -144,6 +144,59 @@ describe("fixed-point conformance with GCS v5.44.0", () => {
     });
   }, 30_000);
 
+  it("characterizes exponent precision and the approved checked-error policy", () => {
+    const precisionInput = "9.99999e-1";
+    const saferPolicyInput = "9.223372036854775807e14";
+    const responses = runPrimitiveOracle([
+      {
+        id: "exponent-precision",
+        op: "fxp.parse",
+        args: { input: precisionInput },
+      },
+      {
+        id: "exponent-safer-policy",
+        op: "fxp.parse",
+        args: { input: saferPolicyInput },
+      },
+    ]);
+
+    expectRawMatch(
+      responses[0],
+      "parse_exponent_precision",
+      0,
+      `input=${JSON.stringify(precisionInput)}`,
+      fxpToRaw(parseFxp(precisionInput)).toString(),
+    );
+    expect(
+      fxpToRaw(parseFxp(precisionInput)),
+      mismatch(
+        "parse_exponent_precision",
+        0,
+        `input=${JSON.stringify(precisionInput)}`,
+        fxpToRaw(parseFxp(precisionInput)).toString(),
+        String(responses[0]?.ok ? responses[0].result.raw : "failure"),
+      ),
+    ).toBe(10_000n);
+
+    const goSaferPolicy = responses[1];
+    const policyContext = mismatch(
+      "parse_exponent_safer_policy",
+      1,
+      `input=${JSON.stringify(saferPolicyInput)}`,
+      "FXP_OUT_OF_RANGE",
+      goSaferPolicy?.ok
+        ? `successful raw=${String(goSaferPolicy.result.raw)}`
+        : `failure category=${goSaferPolicy?.category ?? "missing"} message=${goSaferPolicy?.message ?? "missing"}`,
+    );
+    expect(goSaferPolicy?.ok, policyContext).toBe(true);
+    if (goSaferPolicy?.ok) {
+      expect(goSaferPolicy.result.raw, policyContext).toBe("0");
+    }
+    expect(() => parseFxp(saferPolicyInput), policyContext).toThrowError(
+      expect.objectContaining({ code: "FXP_OUT_OF_RANGE" }),
+    );
+  }, 30_000);
+
   it("matches checked parser error categories for malformed and out-of-range text", () => {
     const inputs = [
       " ",
