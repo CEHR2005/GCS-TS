@@ -1,5 +1,11 @@
 export { GcsParseError, type GcsParseErrorCode } from "./errors.js";
 export {
+  absFxp,
+  addFxp,
+  applyFxpRounding,
+  ceilFxp,
+  divideFxp,
+  floorFxp,
   formatFxp,
   FXP_MAX_RAW,
   FXP_MIN_RAW,
@@ -7,7 +13,14 @@ export {
   fxpFromInteger,
   fxpFromRaw,
   fxpToRaw,
+  maxFxp,
+  minFxp,
+  moduloFxp,
+  multiplyFxp,
   parseFxp,
+  roundFxp,
+  subtractFxp,
+  truncateFxp,
   type Fxp,
 } from "./fxp/index.js";
 export { parseGcsV5 } from "./parse.js";
