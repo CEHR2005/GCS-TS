@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-17
 
-**Status:** Pending written-spec review
+**Status:** Approved
 
 **Upstream baseline:** GCS v5.44.0, GCS Master Library v5.12.0, Toolbox v2.15.0
 
