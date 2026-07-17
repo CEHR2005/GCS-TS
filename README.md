@@ -2,11 +2,13 @@
 
 This repository is the first, deliberately narrow slice of a future GURPS 4
 character manager. It provides a production TypeScript package that strictly
-parses and serializes GCS data version 5, plus a test-only oracle proving that
-the round trip preserves official GCS semantics.
+parses and serializes GCS data version 5 and exposes conformant fixed-point,
+typed-ID, and selected persisted-enum primitives. Test-only Go oracles prove
+the document round trip and primitive behavior against pinned upstream GCS
+sources.
 
-Next.js, UI, persistence, drag-and-drop, and GURPS calculation rules are not
-part of this foundation.
+Typed traits, trait modifiers, GURPS calculations, recalculation, Next.js, UI,
+persistence, and drag-and-drop are not part of this slice.
 
 ## Setup and verification
 
@@ -20,10 +22,10 @@ docker compose run --rm toolchain pnpm install --frozen-lockfile
 docker compose run --rm toolchain pnpm check
 ```
 
-`pnpm check` runs formatting, linting, TypeScript type checks, unit tests, Go
-oracle tests, curated conformance tests, the package build, dependency-tree
-inspection, and a production dependency audit rejecting high and critical
-findings. CI executes the same Docker-first sequence.
+`pnpm check` runs formatting, linting, TypeScript type checks, unit tests, both
+Go oracle suites, document and primitive conformance tests, the package build,
+dependency-tree inspection, and a production dependency audit rejecting high
+and critical findings. CI executes the same Docker-first sequence.
 
 The base images are digest-pinned, but the Debian packages installed during
 the image build resolve from mutable Bookworm APT repositories. The toolchain
@@ -55,11 +57,19 @@ semantically; key order and byte-identical output are not compatibility
 contracts.
 
 Only GCS data version 5 is supported. Versions 1 through 4 and version 6 or
-later are rejected. The engine does not repair data, generate IDs, recalculate
-values, or mutate character state.
+later are rejected. The `parseGcsV5` and `serializeGcsV5` document APIs do not
+repair data, generate IDs, recalculate values, or mutate character state.
 
 Consumers can inspect the package manifest's `gcsCapabilities` field for the
 machine-readable data-version support policy.
+
+The primitives surface is ready for use: signed 64-bit fixed-point values at
+scale 10,000, four trait-related typed-ID kinds backed by cryptographic
+randomness, and the persisted enums needed by the next engine slice. Strict
+enum parsers reject unknown values; compatibility normalizers preserve pinned
+GCS fallback behavior with visible diagnostics. See the
+[`@gcs/gcs-engine` README](packages/gcs-engine/README.md) for the API and
+examples.
 
 ## GCS oracle and conformance
 
@@ -107,5 +117,5 @@ process.
 MPL-2.0. The remainder of the monorepo is separately licensable; see the
 package license and `THIRD_PARTY_NOTICES.md`.
 
-The next engine slice will port fixed-point values, enums, and TID primitives.
-Calculation parity and the web application belong to later slices.
+Typed traits and trait modifiers are the next engine slice. Calculation parity
+and the web application belong to later slices.
