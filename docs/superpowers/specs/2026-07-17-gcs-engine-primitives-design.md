@@ -103,11 +103,13 @@ are not runtime fields or public values.
   `9223372036854775807`;
 - parsing accepts an optional sign, grouping commas, decimal input, and the
   exponent notation accepted by pinned GCS;
+- GCS-compatible `+`, `-`, `.`, `+.`, `-.`, and comma-only forms are accepted
+  as zero even though other malformed forms are rejected;
 - input beyond four decimal places is truncated toward zero;
 - canonical formatting omits grouping separators, unnecessary trailing zeroes,
   and the decimal point for whole values;
-- malformed or out-of-range textual input is rejected rather than converted to
-  zero.
+- other malformed or out-of-range textual input is rejected rather than
+  converted to zero.
 
 The public surface provides constants and functions for checked construction
 from raw and integer values, raw extraction, parse/format, add, subtract,

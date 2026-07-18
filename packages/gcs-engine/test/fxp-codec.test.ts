@@ -60,11 +60,30 @@ describe("fixed-point codec", () => {
     expect(fxpToRaw(parseFxp(input))).toBe(raw);
   });
 
-  it.each([" 1", "1 ", "+ 1", "1e309"])(
-    "rejects incompatible form %j",
+  it.each([
+    ["1e1_0", 100_000_000_000_000n],
+    ["1_0e1", 1_000_000n],
+  ] as const)("accepts pinned exponent separators in %s", (input, raw) => {
+    expect(fxpToRaw(parseFxp(input))).toBe(raw);
+  });
+
+  it.each(["1_e2", "1e_2", "1e2_", "_1e2", "1__0e1"])(
+    "rejects invalid exponent separator placement %s",
     (input) =>
       expect(() => parseFxp(input)).toThrowError(
         expect.objectContaining({ code: "INVALID_FXP" }),
       ),
+  );
+
+  it("classifies a finite-syntax exponent overflow", () => {
+    expect(() => parseFxp("1e309")).toThrowError(
+      expect.objectContaining({ code: "FXP_OUT_OF_RANGE" }),
+    );
+  });
+
+  it.each([" 1", "1 ", "+ 1"])("rejects incompatible form %j", (input) =>
+    expect(() => parseFxp(input)).toThrowError(
+      expect.objectContaining({ code: "INVALID_FXP" }),
+    ),
   );
 });

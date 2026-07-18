@@ -3,7 +3,10 @@ package oracle
 import (
 	"encoding/json"
 	"reflect"
+	"slices"
 	"testing"
+
+	"github.com/richardwilkes/gcs/v5/model/gurps/enums/container"
 )
 
 func enumOperation(t *testing.T, op string, args map[string]any) map[string]any {
@@ -51,6 +54,23 @@ func TestEnumTables(t *testing.T) {
 				t.Fatalf("unexpected values: %#v", result["values"])
 			}
 		})
+	}
+}
+
+func TestEnumTableFollowsPinnedExportedOrdering(t *testing.T) {
+	original := container.Types
+	mutated := slices.Clone(original)
+	mutated[0], mutated[1] = mutated[1], mutated[0]
+	container.Types = mutated
+	defer func() { container.Types = original }()
+
+	result := enumOperation(t, "enum.table", map[string]any{"domain": "trait_container"})
+	want := make([]any, len(mutated))
+	for i, value := range mutated {
+		want[i] = value.Key()
+	}
+	if !reflect.DeepEqual(result["values"], want) {
+		t.Fatalf("enum.table did not follow container.Types: %#v", result["values"])
 	}
 }
 

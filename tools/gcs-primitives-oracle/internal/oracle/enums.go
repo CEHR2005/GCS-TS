@@ -33,68 +33,19 @@ func handleEnumTable(raw json.RawMessage) (any, string, string, error) {
 	var values any
 	switch args.Domain {
 	case "trait_container":
-		values = keysOfContainerTypes([]container.Type{
-			container.Group,
-			container.AlternativeAbilities,
-			container.Ancestry,
-			container.Attributes,
-			container.MetaTrait,
-		})
+		values = keysOfContainerTypes(container.Types)
 	case "trait_modifier_affects":
-		values = keysOfAffectsOptions([]affects.Option{
-			affects.Total,
-			affects.BaseOnly,
-			affects.LevelsOnly,
-		})
+		values = keysOfAffectsOptions(affects.Options)
 	case "self_control_roll":
-		values = numbersOfSelfControlRolls([]selfctrl.Roll{
-			selfctrl.None,
-			selfctrl.Always,
-			selfctrl.CR6,
-			selfctrl.CR7,
-			selfctrl.CR8,
-			selfctrl.CR9,
-			selfctrl.CR10,
-			selfctrl.CR11,
-			selfctrl.CR12,
-			selfctrl.CR13,
-			selfctrl.CR14,
-			selfctrl.CR15,
-		})
+		values = numbersOfSelfControlRolls(selfctrl.Rolls)
 	case "self_control_adjustment":
-		values = keysOfSelfControlAdjustments([]selfctrl.Adjustment{
-			selfctrl.NoAdjustment,
-			selfctrl.ActionPenalty,
-			selfctrl.ReactionPenalty,
-			selfctrl.FrightCheckPenalty,
-			selfctrl.FrightCheckBonus,
-			selfctrl.MinorCostOfLivingIncrease,
-			selfctrl.MajorCostOfLivingIncrease,
-		})
+		values = keysOfSelfControlAdjustments(selfctrl.Adjustments)
 	case "frequency_roll":
-		values = numbersOfFrequencyRolls([]frequency.Roll{
-			frequency.None,
-			frequency.FR6,
-			frequency.FR9,
-			frequency.FR12,
-			frequency.FR15,
-			frequency.Constant,
-		})
+		values = numbersOfFrequencyRolls(frequency.Rolls)
 	case "study_level":
-		values = keysOfStudyLevels([]study.Level{
-			study.Standard,
-			study.Level1,
-			study.Level2,
-			study.Level3,
-			study.Level4,
-		})
+		values = keysOfStudyLevels(study.Levels)
 	case "study_type":
-		values = keysOfStudyTypes([]study.Type{
-			study.Self,
-			study.Job,
-			study.Teacher,
-			study.Intensive,
-		})
+		values = keysOfStudyTypes(study.Types)
 	default:
 		return nil, "", "", fmt.Errorf("unknown enum domain %q", args.Domain)
 	}

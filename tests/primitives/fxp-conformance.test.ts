@@ -147,6 +147,8 @@ describe("fixed-point conformance with GCS v5.44.0", () => {
   it("characterizes exponent precision and the approved checked-error policy", () => {
     const precisionInput = "9.99999e-1";
     const saferPolicyInput = "9.223372036854775807e14";
+    const separatorInputs = ["1e1_0", "1_0e1"] as const;
+    const finiteSyntaxOverflowInput = "1e309";
     const responses = runPrimitiveOracle([
       {
         id: "exponent-precision",
@@ -157,6 +159,16 @@ describe("fixed-point conformance with GCS v5.44.0", () => {
         id: "exponent-safer-policy",
         op: "fxp.parse",
         args: { input: saferPolicyInput },
+      },
+      ...separatorInputs.map((input, index) => ({
+        id: `exponent-separator-${index}`,
+        op: "fxp.parse",
+        args: { input },
+      })),
+      {
+        id: "exponent-finite-syntax-overflow",
+        op: "fxp.parse",
+        args: { input: finiteSyntaxOverflowInput },
       },
     ]);
 
@@ -195,6 +207,37 @@ describe("fixed-point conformance with GCS v5.44.0", () => {
     expect(() => parseFxp(saferPolicyInput), policyContext).toThrowError(
       expect.objectContaining({ code: "FXP_OUT_OF_RANGE" }),
     );
+
+    separatorInputs.forEach((input, index) => {
+      expectRawMatch(
+        responses[index + 2],
+        "parse_exponent_separator",
+        index + 2,
+        `input=${JSON.stringify(input)}`,
+        fxpToRaw(parseFxp(input)).toString(),
+      );
+    });
+
+    const goFiniteSyntaxOverflow = responses[4];
+    const overflowContext = mismatch(
+      "parse_exponent_finite_syntax_overflow",
+      4,
+      `input=${JSON.stringify(finiteSyntaxOverflowInput)}`,
+      "FXP_OUT_OF_RANGE",
+      goFiniteSyntaxOverflow?.ok
+        ? `successful raw=${String(goFiniteSyntaxOverflow.result.raw)}`
+        : `failure category=${goFiniteSyntaxOverflow?.category ?? "missing"} message=${goFiniteSyntaxOverflow?.message ?? "missing"}`,
+    );
+    expect(goFiniteSyntaxOverflow?.ok, overflowContext).toBe(false);
+    if (goFiniteSyntaxOverflow && !goFiniteSyntaxOverflow.ok) {
+      expect(goFiniteSyntaxOverflow.category, overflowContext).toBe(
+        "fxp_out_of_range",
+      );
+    }
+    expect(
+      () => parseFxp(finiteSyntaxOverflowInput),
+      overflowContext,
+    ).toThrowError(expect.objectContaining({ code: "FXP_OUT_OF_RANGE" }));
   }, 30_000);
 
   it("matches checked parser error categories for malformed and out-of-range text", () => {

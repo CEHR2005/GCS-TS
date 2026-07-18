@@ -28,6 +28,8 @@ saturation rules at signed-64 boundaries. Division or modulo by zero throws a
 `GcsPrimitiveError` with code `DIVIDE_BY_ZERO`.
 
 The raw range is `-9223372036854775808` through `9223372036854775807`.
+GCS-compatible `+`, `-`, `.`, `+.`, `-.`, and comma-only forms are accepted as
+zero even though other malformed forms are rejected.
 
 ## Typed IDs
 
