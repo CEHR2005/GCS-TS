@@ -602,12 +602,12 @@ reference_highlight -> referenceHighlight
 local_notes -> localNotes
 tags -> tags
 prereqs -> prerequisites
-self_control_roll -> selfControlRoll
-self_control_adjustment -> selfControlAdjustment
+cr -> selfControlRoll
+cr_adj -> selfControlAdjustment
 frequency -> frequency
 disabled -> disabled
 vtt_notes -> vttNotes
-user_description -> userDescription
+userdesc -> userDescription
 replacements -> replacements
 modifiers -> modifiers
 third_party -> thirdParty

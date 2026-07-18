@@ -203,6 +203,12 @@ Trait common fields include `source`, `name`, `reference`,
 `vttNotes`, `userDescription`, `replacements`, `modifiers`, `thirdParty`, and
 `calc`.
 
+The persisted v5 wire keys follow pinned GCS exactly: `cr` projects to
+`selfControlRoll`, `cr_adj` projects to `selfControlAdjustment`, and
+`userdesc` projects to `userDescription`. The projection does not accept the
+descriptive aliases `self_control_roll`, `self_control_adjustment`, or
+`user_description` in place of those canonical keys.
+
 Trait leaf-only fields include `basePoints`, `pointsPerLevel`, `levels`,
 `roundDown`, `canLevel`, `study`, `studyHoursNeeded`, `features`, and `weapons`.
 
