@@ -232,6 +232,23 @@ describe("runTraitsOracle", () => {
     ).toThrow(/timed out after 20 ms/i);
   });
 
+  it.each(["stdout", "stderr"] as const)(
+    "reports %s max-buffer overflow distinctly",
+    (stream) => {
+      expect(() =>
+        runTraitsOracle(requests.slice(0, 1), {
+          ...nodeFixture(`
+            process.stdin.resume();
+            process.stdin.on("end", () => {
+              process.${stream}.write("x".repeat(1_024));
+            });
+          `),
+          maxBuffer: 64,
+        }),
+      ).toThrow(/traits oracle process exceeded its 64-byte output buffer/i);
+    },
+  );
+
   it("rejects a spawn error", () => {
     expect(() =>
       runTraitsOracle(requests.slice(0, 1), {

@@ -25,6 +25,7 @@ export function runTraitsOracle(
   const requestedIds = validateRequests(requests);
   const input = `${requests.map((request) => JSON.stringify(request)).join("\n")}\n`;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxBuffer = options.maxBuffer ?? 16 * 1024 * 1024;
   const child = spawnSync(
     options.command ?? "gcs-traits-oracle",
     options.args ?? [],
@@ -33,14 +34,21 @@ export function runTraitsOracle(
       input,
       encoding: "utf8",
       timeout: timeoutMs,
-      maxBuffer: options.maxBuffer ?? 16 * 1024 * 1024,
+      maxBuffer,
     },
   );
 
   if (child.error) {
-    if ((child.error as NodeJS.ErrnoException).code === "ETIMEDOUT") {
+    const errorCode = (child.error as NodeJS.ErrnoException).code;
+    if (errorCode === "ETIMEDOUT") {
       throw new Error(
         `traits oracle process timed out after ${timeoutMs} ms${failureStderr(child.stderr)}`,
+        { cause: child.error },
+      );
+    }
+    if (errorCode === "ENOBUFS") {
+      throw new Error(
+        `traits oracle process exceeded its ${maxBuffer}-byte output buffer`,
         { cause: child.error },
       );
     }
