@@ -3,6 +3,7 @@ export {
   GcsTraitProjectionError,
   type GcsTraitProjectionErrorCode,
 } from "./errors.js";
+export { projectGcsTraitsV5 } from "./project.js";
 export type {
   GcsReadonlyJsonObject,
   GcsReadonlyJsonValue,

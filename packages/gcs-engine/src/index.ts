@@ -74,6 +74,7 @@ export {
 export {
   GCS_TRAIT_PROJECTION_MAX_DEPTH,
   GcsTraitProjectionError,
+  projectGcsTraitsV5,
   type GcsReadonlyJsonObject,
   type GcsReadonlyJsonValue,
   type GcsSourceV5,
