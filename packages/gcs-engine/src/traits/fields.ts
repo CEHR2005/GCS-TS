@@ -14,6 +14,35 @@ import type {
 const MIN_SAFE_FXP_RAW = BigInt(Number.MIN_SAFE_INTEGER);
 const MAX_SAFE_FXP_RAW = BigInt(Number.MAX_SAFE_INTEGER);
 
+function requireNotActive(
+  value: object,
+  path: string,
+  active: WeakSet<object>,
+): void {
+  if (active.has(value)) {
+    throw new GcsTraitProjectionError(
+      "CYCLE_DETECTED",
+      "Composite field contains an active-ancestor cycle",
+      path,
+    );
+  }
+}
+
+function withActiveComposite<T>(
+  value: object,
+  path: string,
+  active: WeakSet<object>,
+  read: () => T,
+): T {
+  requireNotActive(value, path, active);
+  active.add(value);
+  try {
+    return read();
+  } finally {
+    active.delete(value);
+  }
+}
+
 export function requireRecord(
   value: unknown,
   code: "INVALID_TRAIT" | "INVALID_TRAIT_MODIFIER",
@@ -297,6 +326,7 @@ export function readOptionalSource(
   record: Record<string, unknown>,
   path: string,
   enclosingKind: TidKind,
+  active: WeakSet<object>,
 ): GcsSourceV5 | undefined {
   if (!Object.hasOwn(record, "source")) return undefined;
   const sourcePath = appendJsonPointer(path, "source");
@@ -308,46 +338,56 @@ export function readOptionalSource(
       sourcePath,
     );
   }
-  const source = value as Record<string, unknown>;
-  const library = readRequiredSourceString(source, "library", sourcePath);
-  const sourceRecordPath = readRequiredSourceString(source, "path", sourcePath);
-  const idPath = appendJsonPointer(sourcePath, "id");
-  if (!Object.hasOwn(source, "id") || typeof source.id !== "string") {
-    throw new GcsTraitProjectionError(
-      "INVALID_FIELD",
-      "Source id must be a TID string",
-      idPath,
+  return withActiveComposite(value, sourcePath, active, () => {
+    const source = value as Record<string, unknown>;
+    const library = readRequiredSourceString(source, "library", sourcePath);
+    const sourceRecordPath = readRequiredSourceString(
+      source,
+      "path",
+      sourcePath,
     );
-  }
-
-  let id: Tid;
-  try {
-    id = parseTid(source.id);
-  } catch (error) {
-    if (
-      error instanceof GcsPrimitiveError &&
-      error.code === "INVALID_TID_KIND"
-    ) {
+    const idPath = appendJsonPointer(sourcePath, "id");
+    if (!Object.hasOwn(source, "id") || typeof source.id !== "string") {
       throw new GcsTraitProjectionError(
-        "INVALID_NODE_KIND",
-        error.message,
+        "INVALID_FIELD",
+        "Source id must be a TID string",
         idPath,
       );
     }
-    if (error instanceof GcsPrimitiveError) {
-      throw new GcsTraitProjectionError("INVALID_FIELD", error.message, idPath);
+
+    let id: Tid;
+    try {
+      id = parseTid(source.id);
+    } catch (error) {
+      if (
+        error instanceof GcsPrimitiveError &&
+        error.code === "INVALID_TID_KIND"
+      ) {
+        throw new GcsTraitProjectionError(
+          "INVALID_NODE_KIND",
+          error.message,
+          idPath,
+        );
+      }
+      if (error instanceof GcsPrimitiveError) {
+        throw new GcsTraitProjectionError(
+          "INVALID_FIELD",
+          error.message,
+          idPath,
+        );
+      }
+      throw error;
     }
-    throw error;
-  }
-  const kind = getTidKind(id);
-  if (kind !== enclosingKind) {
-    throw new GcsTraitProjectionError(
-      "INVALID_NODE_KIND",
-      `Source TID kind ${kind} does not match enclosing node kind ${enclosingKind}`,
-      idPath,
-    );
-  }
-  return Object.freeze({ library, path: sourceRecordPath, id });
+    const kind = getTidKind(id);
+    if (kind !== enclosingKind) {
+      throw new GcsTraitProjectionError(
+        "INVALID_NODE_KIND",
+        `Source TID kind ${kind} does not match enclosing node kind ${enclosingKind}`,
+        idPath,
+      );
+    }
+    return Object.freeze({ library, path: sourceRecordPath, id });
+  });
 }
 
 function readRequiredStudyType(
@@ -381,6 +421,7 @@ function readRequiredStudyHours(
 export function readOptionalStudy(
   record: Record<string, unknown>,
   path: string,
+  active: WeakSet<object>,
 ): readonly GcsStudyV5[] | undefined {
   if (!Object.hasOwn(record, "study")) return undefined;
   const studyPath = appendJsonPointer(path, "study");
@@ -393,28 +434,35 @@ export function readOptionalStudy(
     );
   }
 
-  const clone: GcsStudyV5[] = [];
-  for (let index = 0; index < value.length; index += 1) {
-    const entryPath = appendJsonPointer(studyPath, String(index));
-    const entry = value[index];
-    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
-      throw new GcsTraitProjectionError(
-        "INVALID_FIELD",
-        "Study entry must be an object",
-        entryPath,
+  return withActiveComposite(value, studyPath, active, () => {
+    const clone: GcsStudyV5[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const entryPath = appendJsonPointer(studyPath, String(index));
+      const entry = value[index];
+      if (entry !== null && typeof entry === "object") {
+        requireNotActive(entry, entryPath, active);
+      }
+      if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new GcsTraitProjectionError(
+          "INVALID_FIELD",
+          "Study entry must be an object",
+          entryPath,
+        );
+      }
+      const study = entry as Record<string, unknown>;
+      clone.push(
+        withActiveComposite(study, entryPath, active, () => {
+          const type = readRequiredStudyType(study, entryPath);
+          const hours = readRequiredStudyHours(study, entryPath);
+          const note = readOptionalString(study, "note", entryPath);
+          return Object.freeze({
+            type,
+            hours,
+            ...(note === undefined ? {} : { note }),
+          });
+        }),
       );
     }
-    const study = entry as Record<string, unknown>;
-    const type = readRequiredStudyType(study, entryPath);
-    const hours = readRequiredStudyHours(study, entryPath);
-    const note = readOptionalString(study, "note", entryPath);
-    clone.push(
-      Object.freeze({
-        type,
-        hours,
-        ...(note === undefined ? {} : { note }),
-      }),
-    );
-  }
-  return Object.freeze(clone);
+    return Object.freeze(clone);
+  });
 }

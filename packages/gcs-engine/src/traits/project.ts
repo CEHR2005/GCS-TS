@@ -198,7 +198,11 @@ function projectTraitCommon(
   const string = (key: string) => readOptionalString(record, key, path);
   const jsonObject = (key: string) =>
     readOptionalJsonObject(record, key, path, depth, active);
-  assignOptional(builder, "source", readOptionalSource(record, path, kind));
+  assignOptional(
+    builder,
+    "source",
+    readOptionalSource(record, path, kind, active),
+  );
   assignOptional(builder, "name", string("name"));
   assignOptional(builder, "reference", string("reference"));
   assignOptional(builder, "referenceHighlight", string("reference_highlight"));
@@ -254,7 +258,11 @@ function projectModifierCommon(
   const string = (key: string) => readOptionalString(record, key, path);
   const jsonObject = (key: string) =>
     readOptionalJsonObject(record, key, path, depth, active);
-  assignOptional(builder, "source", readOptionalSource(record, path, kind));
+  assignOptional(
+    builder,
+    "source",
+    readOptionalSource(record, path, kind, active),
+  );
   assignOptional(builder, "name", string("name"));
   assignOptional(builder, "reference", string("reference"));
   assignOptional(builder, "referenceHighlight", string("reference_highlight"));
@@ -304,7 +312,7 @@ function projectTraitNode(
       assignOptional(builder, "levels", fxp("levels"));
       assignOptional(builder, "roundDown", boolean("round_down"));
       assignOptional(builder, "canLevel", boolean("can_level"));
-      assignOptional(builder, "study", readOptionalStudy(record, path));
+      assignOptional(builder, "study", readOptionalStudy(record, path, active));
       assignOptional(
         builder,
         "studyHoursNeeded",
