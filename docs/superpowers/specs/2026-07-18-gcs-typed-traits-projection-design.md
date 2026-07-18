@@ -43,6 +43,8 @@ code lives in `packages/gcs-engine/src/traits/`:
 - `types.ts` owns the readonly public model;
 - `errors.ts` owns stable projection error codes and JSON-pointer paths;
 - `readonly-json.ts` validates, clones, and recursively freezes opaque JSON;
+- `fields.ts` owns shared scalar, enum, TID, fixed-point, and collection
+  readers;
 - `project.ts` validates the trait/modifier tree and builds the projection;
 - `index.ts` exposes the module surface to the package root.
 
