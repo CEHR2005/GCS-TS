@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import {
   formatFxp,
   GCS_DATA_VERSION,
+  GCS_TRAIT_PROJECTION_MAX_DEPTH,
   GcsParseError,
   GcsPrimitiveError,
+  GcsTraitProjectionError,
   fxpToRaw,
   generateTid,
   multiplyFxp,
@@ -12,11 +14,14 @@ import {
   parseFxp,
   parseGcsV5,
   parseTraitContainerType,
+  projectGcsTraitsV5,
   serializeGcsV5,
 } from "@gcs/gcs-engine";
 
 assert.equal(GCS_DATA_VERSION, 5);
 assert.equal(typeof GcsPrimitiveError, "function");
+assert.equal(GCS_TRAIT_PROJECTION_MAX_DEPTH, 256);
+assert.equal(typeof GcsTraitProjectionError, "function");
 
 const fixed = parseFxp("1.25");
 assert.equal(fxpToRaw(fixed), 12_500n);
@@ -33,6 +38,15 @@ assert.equal(
   serializeGcsV5(document),
   '{\n\t"version": 5,\n\t"name": "Ирина"\n}\n',
 );
+
+const traitId = "tAAECAwQFBgcICQoL";
+const traitDocument = parseGcsV5(
+  `{"version":5,"traits":[{"id":"${traitId}","base_points":1.25}]}`,
+);
+const projectedTraits = projectGcsTraitsV5(traitDocument);
+assert.equal(projectedTraits?.[0]?.kind, "trait");
+assert.equal(projectedTraits?.[0]?.id, traitId);
+assert.equal(fxpToRaw(projectedTraits?.[0]?.basePoints), 12_500n);
 
 assert.throws(
   () => parseGcsV5('{"version":4}'),
