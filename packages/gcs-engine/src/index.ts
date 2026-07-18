@@ -72,6 +72,21 @@ export {
   type TidRandomSource,
 } from "./tid/index.js";
 export {
+  GCS_TRAIT_PROJECTION_MAX_DEPTH,
+  GcsTraitProjectionError,
+  type GcsReadonlyJsonObject,
+  type GcsReadonlyJsonValue,
+  type GcsSourceV5,
+  type GcsStudyV5,
+  type GcsTraitContainerV5,
+  type GcsTraitModifierContainerV5,
+  type GcsTraitModifierNodeV5,
+  type GcsTraitModifierV5,
+  type GcsTraitNodeV5,
+  type GcsTraitProjectionErrorCode,
+  type GcsTraitV5,
+} from "./traits/index.js";
+export {
   GCS_DATA_VERSION,
   type GcsDocumentV5,
   type JsonValue,
