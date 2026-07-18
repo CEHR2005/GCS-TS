@@ -10,10 +10,11 @@ Source: https://github.com/richardwilkes/gcs_master_library/tree/v5.12.0/Library
 
 The exact upstream paths and SHA-256 digests are recorded in the manifest.
 
-## GCS primitive behavior
+## GCS engine behavior and test oracles
 
-The primitive behavior in `packages/gcs-engine` and its conformance tests was
-translated from and checked against these exact MPL-2.0 sources:
+The primitive and typed-trait behavior in `packages/gcs-engine` and its
+conformance tests was translated from and checked against these pinned MPL-2.0
+sources:
 
 - `richardwilkes/gcs` tag `v5.44.0`
   ([source](https://github.com/richardwilkes/gcs/tree/v5.44.0)):
@@ -31,7 +32,16 @@ translated from and checked against these exact MPL-2.0 sources:
 
 Both upstream repositories are licensed under the Mozilla Public License 2.0
 (MPL-2.0). The Go modules are downloaded at their pinned versions only for the
-test oracle; they are not production dependencies or vendored runtime code.
+test oracles; they are not production dependencies or vendored runtime code.
+
+`tools/gcs-traits-oracle` pins `github.com/richardwilkes/gcs/v5` v5.44.0 and
+`github.com/richardwilkes/toolbox/v2` v2.15.0 in its own `go.mod`. The JSONL
+oracle uses upstream `model/gurps`, `model/fxp`, and `tid` APIs to decode GCS
+data version 5 and project known trait and trait-modifier source fields for
+test comparison. It is built and run only by tests and CI. Opaque JSON
+retention and original-document serialization are verified in TypeScript and
+by the existing whole-document oracle rather than copied from the traits
+oracle.
 
 The MPL-2.0 boundary covers `packages/gcs-engine` and upstream-derived test and
 fixture material. This notice does not state or imply that the entire monorepo
