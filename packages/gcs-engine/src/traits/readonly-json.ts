@@ -37,6 +37,10 @@ function cloneArray(
   depth: number,
   active: WeakSet<object>,
 ): readonly GcsReadonlyJsonValue[] {
+  if (Object.getPrototypeOf(value) !== Array.prototype) {
+    invalidJson("JSON arrays must have the standard Array prototype", path);
+  }
+
   const clone: GcsReadonlyJsonValue[] = [];
   for (let index = 0; index < value.length; index += 1) {
     const itemPath = appendJsonPointer(path, String(index));

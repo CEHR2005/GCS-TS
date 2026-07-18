@@ -101,6 +101,20 @@ describe("cloneReadonlyJson", () => {
     );
   });
 
+  it.each([
+    ["an Array subclass", () => new (class extends Array<unknown> {})(true)],
+    [
+      "an array with a replaced prototype",
+      () => Object.setPrototypeOf([true], null) as unknown[],
+    ],
+  ])("rejects %s", (_name, createInput) => {
+    expectProjectionError(
+      () => cloneReadonlyJson(createInput(), "/calc", 1, new WeakSet()),
+      "INVALID_FIELD",
+      "/calc",
+    );
+  });
+
   it("rejects active-ancestor cycles at the recursive path", () => {
     const input: { self?: unknown } = {};
     input.self = input;
@@ -123,6 +137,11 @@ describe("cloneReadonlyJson", () => {
       "MAX_DEPTH_EXCEEDED",
       "/calc",
     );
+  });
+
+  it("accepts arrays and objects at depth 256", () => {
+    expect(cloneReadonlyJson({}, "/calc", 256, new WeakSet())).toEqual({});
+    expect(cloneReadonlyJson([], "/calc", 256, new WeakSet())).toEqual([]);
   });
 
   it("allows shared non-ancestor objects and clones each occurrence", () => {
