@@ -42,6 +42,23 @@ func TestCommandTerminatesNonZeroForUnknownOperation(t *testing.T) {
 	assertCommandFailure(t, string(input)+"\n", "unknown operation")
 }
 
+func TestCommandTerminatesNonZeroForInvalidCalculateRequests(t *testing.T) {
+	document, _ := json.Marshal(`{"version":5,"traits":[]}`)
+	tests := map[string]string{
+		"missing option":     `{"id":"x","op":"traits.calculate","document":` + string(document) + `}`,
+		"wrong option type":  `{"id":"x","op":"traits.calculate","document":` + string(document) + `,"use_multiplicative_modifiers":"false"}`,
+		"extra field":        `{"id":"x","op":"traits.calculate","document":` + string(document) + `,"use_multiplicative_modifiers":false,"extra":1}`,
+		"document decode":    `{"id":"x","op":"traits.calculate","document":"not-json","use_multiplicative_modifiers":false}`,
+		"duplicate id":       `{"id":"x","id":"y","op":"traits.calculate","document":` + string(document) + `,"use_multiplicative_modifiers":false}`,
+		"duplicate op":       `{"id":"x","op":"traits.project","op":"traits.calculate","document":` + string(document) + `,"use_multiplicative_modifiers":false}`,
+		"duplicate document": `{"id":"x","op":"traits.calculate","document":` + string(document) + `,"document":` + string(document) + `,"use_multiplicative_modifiers":false}`,
+		"duplicate option":   `{"id":"x","op":"traits.calculate","document":` + string(document) + `,"use_multiplicative_modifiers":false,"use_multiplicative_modifiers":true}`,
+	}
+	for name, input := range tests {
+		t.Run(name, func(t *testing.T) { assertCommandFailure(t, input+"\n", "request line 1") })
+	}
+}
+
 func TestCommandTerminatesNonZeroForDuplicateID(t *testing.T) {
 	input := commandRequest(t, "request-1", "traits.project", `{"version":5,"traits":[]}`)
 	stdout, stderr, err := runCommand(t, string(input)+"\n"+string(input)+"\n")
