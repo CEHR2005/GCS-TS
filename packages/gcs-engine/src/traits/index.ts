@@ -1,4 +1,12 @@
 export {
+  GcsTraitCalculationError,
+  type GcsTraitCalculationErrorCode,
+  type GcsTraitCalculationNodeV5,
+  type GcsTraitCalculationOptionsV5,
+  type GcsTraitCalculationV5,
+  type GcsTraitContainerCalculationV5,
+} from "./calculation/index.js";
+export {
   GCS_TRAIT_PROJECTION_MAX_DEPTH,
   GcsTraitProjectionError,
   type GcsTraitProjectionErrorCode,
