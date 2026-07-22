@@ -1,4 +1,5 @@
 export {
+  calculateGcsTraitPointsV5,
   GcsTraitCalculationError,
   type GcsTraitCalculationErrorCode,
   type GcsTraitCalculationNodeV5,

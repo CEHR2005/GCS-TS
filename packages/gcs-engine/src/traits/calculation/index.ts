@@ -1,3 +1,4 @@
+export { calculateGcsTraitPointsV5 } from "./calculate.js";
 export {
   GcsTraitCalculationError,
   type GcsTraitCalculationErrorCode,

@@ -72,6 +72,7 @@ export {
   type TidRandomSource,
 } from "./tid/index.js";
 export {
+  calculateGcsTraitPointsV5,
   GCS_TRAIT_PROJECTION_MAX_DEPTH,
   GcsTraitCalculationError,
   GcsTraitProjectionError,
