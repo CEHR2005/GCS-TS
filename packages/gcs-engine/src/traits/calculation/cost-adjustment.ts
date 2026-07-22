@@ -4,16 +4,10 @@ import {
   parseFxp,
   type Fxp,
 } from "../../fxp/index.js";
-import {
-  normalizeFraction,
-  type Fraction,
-} from "./fraction.js";
+import { normalizeFraction, type Fraction } from "./fraction.js";
 
 export type CostAdjustmentKind =
-  | "addition"
-  | "percentage_adder"
-  | "percentage_multiplier"
-  | "multiplier";
+  "addition" | "percentage_adder" | "percentage_multiplier" | "multiplier";
 
 export type CostAdjustment = Readonly<{
   kind: CostAdjustmentKind;
@@ -57,7 +51,9 @@ function extractFraction(input: string): Fraction {
   }
   const slash = value.indexOf("/");
   return {
-    numerator: parseFxpForced((slash === -1 ? value : value.slice(0, slash)).trim()),
+    numerator: parseFxpForced(
+      (slash === -1 ? value : value.slice(0, slash)).trim(),
+    ),
     denominator:
       slash === -1 ? ONE : parseFxpForced(value.slice(slash + 1).trim()),
   };

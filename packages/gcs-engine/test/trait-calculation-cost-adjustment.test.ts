@@ -70,7 +70,10 @@ describe("trait cost adjustment compatibility", () => {
   it("normalizes scaling results with zero denominators", () => {
     expect(
       scaleCostAdjustment(
-        { kind: "addition", value: { numerator: fxp(20_000n), denominator: fxp(0n) } },
+        {
+          kind: "addition",
+          value: { numerator: fxp(20_000n), denominator: fxp(0n) },
+        },
         fxp(20_000n),
       ),
     ).toEqual({

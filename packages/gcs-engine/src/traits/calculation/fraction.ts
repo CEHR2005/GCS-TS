@@ -47,10 +47,7 @@ export function multiplyFractions(left: Fraction, right: Fraction): Fraction {
   const normalizedLeft = normalizeFraction(left);
   const normalizedRight = normalizeFraction(right);
   return {
-    numerator: multiplyFxp(
-      normalizedLeft.numerator,
-      normalizedRight.numerator,
-    ),
+    numerator: multiplyFxp(normalizedLeft.numerator, normalizedRight.numerator),
     denominator: multiplyFxp(
       normalizedLeft.denominator,
       normalizedRight.denominator,

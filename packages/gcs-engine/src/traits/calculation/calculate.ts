@@ -42,17 +42,13 @@ function traversalError(
   );
 }
 
-function sumChildren(
-  children: readonly GcsTraitCalculationNodeV5[],
-): Fxp {
+function sumChildren(children: readonly GcsTraitCalculationNodeV5[]): Fxp {
   let total = ZERO;
   for (const child of children) total = addFxp(total, child.adjustedPoints);
   return total;
 }
 
-function alternativeTotal(
-  children: readonly GcsTraitCalculationNodeV5[],
-): Fxp {
+function alternativeTotal(children: readonly GcsTraitCalculationNodeV5[]): Fxp {
   let maximum = ZERO;
   for (const child of children) {
     if (child.adjustedPoints > maximum) maximum = child.adjustedPoints;
@@ -129,8 +125,7 @@ function calculateNode(
         effectivelyDisabled:
           context.effectivelyDisabled || (node.disabled ?? false),
         inheritedModifiers: context.inheritedModifiers,
-        useMultiplicativeModifiers:
-          context.options.useMultiplicativeModifiers,
+        useMultiplicativeModifiers: context.options.useMultiplicativeModifiers,
       });
     }
     return calculateContainer(node, context, path, depth);

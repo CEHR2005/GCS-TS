@@ -28,13 +28,15 @@ describe("trait calculation public types", () => {
       }
     };
 
-    expectTypeOf(narrow).parameter(0).toEqualTypeOf<GcsTraitCalculationNodeV5>();
+    expectTypeOf(narrow)
+      .parameter(0)
+      .toEqualTypeOf<GcsTraitCalculationNodeV5>();
   });
 
   it("keeps children readonly and currentLevel off containers", () => {
-    expectTypeOf<
-      GcsTraitContainerCalculationV5["children"]
-    >().toEqualTypeOf<readonly GcsTraitCalculationNodeV5[] | undefined>();
+    expectTypeOf<GcsTraitContainerCalculationV5["children"]>().toEqualTypeOf<
+      readonly GcsTraitCalculationNodeV5[] | undefined
+    >();
     expectTypeOf<
       HasKey<GcsTraitContainerCalculationV5, "currentLevel">
     >().toEqualTypeOf<false>();

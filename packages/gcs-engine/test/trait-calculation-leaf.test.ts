@@ -45,9 +45,34 @@ const calculate = (
 describe("calculateLeafTrait", () => {
   it.each([
     ["absent values", trait(), 0, 0],
-    ["canLevel false", trait({ basePoints: raw(10), levels: raw(3), pointsPerLevel: raw(2) }), 0, 10],
-    ["positive levels", trait({ basePoints: raw(10), canLevel: true, levels: raw(3), pointsPerLevel: raw(2) }), 3, 16],
-    ["negative persisted levels", trait({ basePoints: raw(10), canLevel: true, levels: raw(-3), pointsPerLevel: raw(2) }), 0, 4],
+    [
+      "canLevel false",
+      trait({ basePoints: raw(10), levels: raw(3), pointsPerLevel: raw(2) }),
+      0,
+      10,
+    ],
+    [
+      "positive levels",
+      trait({
+        basePoints: raw(10),
+        canLevel: true,
+        levels: raw(3),
+        pointsPerLevel: raw(2),
+      }),
+      3,
+      16,
+    ],
+    [
+      "negative persisted levels",
+      trait({
+        basePoints: raw(10),
+        canLevel: true,
+        levels: raw(-3),
+        pointsPerLevel: raw(2),
+      }),
+      0,
+      4,
+    ],
   ])("handles %s", (_name, input, level, points) => {
     expect(calculate(input)).toEqual({
       kind: "trait",
@@ -60,12 +85,42 @@ describe("calculateLeafTrait", () => {
   it.each([
     ["own", [modifier("+2")], [], 12],
     ["inherited", [], [modifier("+2")], 12],
-    ["nested", [{ kind: "trait_modifier_container", id: id("00000000-0000-0000-0000-000000000003"), children: [modifier("+2")] } as GcsTraitModifierNodeV5], [], 12],
+    [
+      "nested",
+      [
+        {
+          kind: "trait_modifier_container",
+          id: id("00000000-0000-0000-0000-000000000003"),
+          children: [modifier("+2")],
+        } as GcsTraitModifierNodeV5,
+      ],
+      [],
+      12,
+    ],
     ["disabled leaf", [modifier("+2", { disabled: true })], [], 10],
-    ["disabled container", [{ kind: "trait_modifier_container", id: id("00000000-0000-0000-0000-000000000004"), children: [modifier("+2")] , disabled: true } as GcsTraitModifierNodeV5], [], 12],
-  ])("applies %s modifier traversal", (_name, modifiers, inheritedModifiers, points) => {
-    expect(calculate(trait({ basePoints: raw(10), modifiers }), { inheritedModifiers }).adjustedPoints).toBe(raw(points));
-  });
+    [
+      "disabled container",
+      [
+        {
+          kind: "trait_modifier_container",
+          id: id("00000000-0000-0000-0000-000000000004"),
+          children: [modifier("+2")],
+          disabled: true,
+        } as GcsTraitModifierNodeV5,
+      ],
+      [],
+      12,
+    ],
+  ])(
+    "applies %s modifier traversal",
+    (_name, modifiers, inheritedModifiers, points) => {
+      expect(
+        calculate(trait({ basePoints: raw(10), modifiers }), {
+          inheritedModifiers,
+        }).adjustedPoints,
+      ).toBe(raw(points));
+    },
+  );
 
   it.each([
     ["total addition", "+2", "total", 10, 4, 16],
@@ -97,22 +152,30 @@ describe("calculateLeafTrait", () => {
     ["trait levels", modifier("+2", { useLevelFromTrait: true }), 16],
     ["minimum one", modifier("+2", { levels: raw(-3) }), 12],
   ])("applies leveled modifier %s", (_name, mod, points) => {
-    const input = trait({ basePoints: raw(10), canLevel: true, levels: raw(3), modifiers: [mod] });
+    const input = trait({
+      basePoints: raw(10),
+      canLevel: true,
+      levels: raw(3),
+      modifiers: [mod],
+    });
     expect(calculate(input).adjustedPoints).toBe(raw(points));
   });
 
   it.each([
     ["zero", raw(0)],
     ["negative", raw(-3)],
-  ])("uses minimum one for useLevelFromTrait at %s trait level", (_name, levels) => {
-    const input = trait({
-      basePoints: raw(10),
-      canLevel: true,
-      levels,
-      modifiers: [modifier("+2", { useLevelFromTrait: true })],
-    });
-    expect(calculate(input).adjustedPoints).toBe(raw(12));
-  });
+  ])(
+    "uses minimum one for useLevelFromTrait at %s trait level",
+    (_name, levels) => {
+      const input = trait({
+        basePoints: raw(10),
+        canLevel: true,
+        levels,
+        modifiers: [modifier("+2", { useLevelFromTrait: true })],
+      });
+      expect(calculate(input).adjustedPoints).toBe(raw(12));
+    },
+  );
 
   it("preserves own then nearest-parent then outward traversal order", () => {
     const input = trait({
@@ -122,13 +185,20 @@ describe("calculateLeafTrait", () => {
       modifier("+0.0001"),
       modifier("-922337203685477.5807"),
     ];
-    expect(calculate(input, { inheritedModifiers }).adjustedPoints).toBe(raw(1));
+    expect(calculate(input, { inheritedModifiers }).adjustedPoints).toBe(
+      raw(1),
+    );
   });
 
   it("distinguishes additive and multiplicative percentage modes", () => {
-    const input = trait({ basePoints: raw(100), modifiers: [modifier("+50%"), modifier("-20%")] });
+    const input = trait({
+      basePoints: raw(100),
+      modifiers: [modifier("+50%"), modifier("-20%")],
+    });
     expect(calculate(input).adjustedPoints).toBe(raw(130));
-    expect(calculate(input, { useMultiplicativeModifiers: true }).adjustedPoints).toBe(raw(120));
+    expect(
+      calculate(input, { useMultiplicativeModifiers: true }).adjustedPoints,
+    ).toBe(raw(120));
   });
 
   it.each([
@@ -136,18 +206,28 @@ describe("calculateLeafTrait", () => {
     ["frequency", { frequency: 6 as const }, 5],
     ["both", { selfControlRoll: 6 as const, frequency: 6 as const }, 10],
   ])("applies %s multiplier", (_name, fields, points) => {
-    expect(calculate(trait({ basePoints: raw(10), ...fields })).adjustedPoints).toBe(raw(points));
+    expect(
+      calculate(trait({ basePoints: raw(10), ...fields })).adjustedPoints,
+    ).toBe(raw(points));
   });
 
   it.each([
     ["ceiling", false, 2],
     ["floor", true, 1],
   ])("uses %s rounding", (_name, roundDown, points) => {
-    expect(calculate(trait({ basePoints: raw(1), roundDown, modifiers: [modifier("x1.5")] })).adjustedPoints).toBe(raw(points));
+    expect(
+      calculate(
+        trait({ basePoints: raw(1), roundDown, modifiers: [modifier("x1.5")] }),
+      ).adjustedPoints,
+    ).toBe(raw(points));
   });
 
   it("returns zero for disabled state", () => {
-    const input = trait({ basePoints: raw(10), canLevel: true, levels: raw(3) });
+    const input = trait({
+      basePoints: raw(10),
+      canLevel: true,
+      levels: raw(3),
+    });
     expect(calculate(input, { effectivelyDisabled: true })).toEqual({
       kind: "trait",
       id: input.id,

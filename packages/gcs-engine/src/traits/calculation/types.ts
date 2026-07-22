@@ -6,8 +6,7 @@ export type GcsTraitCalculationOptionsV5 = {
 };
 
 export type GcsTraitCalculationNodeV5 =
-  | GcsTraitCalculationV5
-  | GcsTraitContainerCalculationV5;
+  GcsTraitCalculationV5 | GcsTraitContainerCalculationV5;
 
 export type GcsTraitCalculationV5 = {
   readonly kind: "trait";

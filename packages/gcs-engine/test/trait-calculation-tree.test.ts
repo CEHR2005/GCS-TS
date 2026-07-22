@@ -64,7 +64,11 @@ describe("trait tree calculation", () => {
 
   it("preserves absent and empty children and sums regular containers", () => {
     const result = calculateGcsTraitPointsV5(
-      [container(), container([], { id: otherContainerId }), container([leaf(), leaf(otherTraitId, 2n)])],
+      [
+        container(),
+        container([], { id: otherContainerId }),
+        container([leaf(), leaf(otherTraitId, 2n)]),
+      ],
       options,
     );
     expect(result?.[0]).toEqual({
@@ -119,7 +123,11 @@ describe("trait tree calculation", () => {
       costAdjustment: "+2",
     };
     const result = calculateGcsTraitPointsV5(
-      [container([container([leaf(traitId, 1n)], { modifiers: [modifier] })], { modifiers: [modifier] })],
+      [
+        container([container([leaf(traitId, 1n)], { modifiers: [modifier] })], {
+          modifiers: [modifier],
+        }),
+      ],
       options,
     );
     expect(result?.[0]?.adjustedPoints).toBe(raw(5n));
@@ -181,7 +189,8 @@ describe("trait tree calculation", () => {
     if (
       result[0]?.kind !== "trait_container" ||
       result[1]?.kind !== "trait_container"
-    ) throw new Error("containers");
+    )
+      throw new Error("containers");
     expect(result[0].children?.[0]).toEqual(result[1].children?.[0]);
     expect(result[0].children?.[0]).not.toBe(result[1].children?.[0]);
   });

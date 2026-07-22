@@ -30,7 +30,10 @@ const ZERO = fxpFromInteger(0n);
 const ONE = fxpFromInteger(1n);
 const NEGATIVE_EIGHTY = fxpFromInteger(-80n);
 const HUNDRED = fxpFromInteger(100n);
-const fraction = (numerator: Fxp): Fraction => ({ numerator, denominator: ONE });
+const fraction = (numerator: Fxp): Fraction => ({
+  numerator,
+  denominator: ONE,
+});
 
 function currentLevel(trait: GcsTraitV5): Fxp {
   if (!trait.canLevel || (trait.levels ?? ZERO) < ZERO) return ZERO;
@@ -39,15 +42,28 @@ function currentLevel(trait: GcsTraitV5): Fxp {
 
 function selfControlMultiplier(value: GcsTraitV5["selfControlRoll"]): Fxp {
   const raw: Record<number, bigint> = {
-    1: 25_000n, 6: 20_000n, 7: 18_300n, 8: 16_700n, 9: 15_000n,
-    10: 13_300n, 11: 11_700n, 12: 10_000n, 13: 8_300n, 14: 6_700n, 15: 5_000n,
+    1: 25_000n,
+    6: 20_000n,
+    7: 18_300n,
+    8: 16_700n,
+    9: 15_000n,
+    10: 13_300n,
+    11: 11_700n,
+    12: 10_000n,
+    13: 8_300n,
+    14: 6_700n,
+    15: 5_000n,
   };
   return (raw[value ?? 0] ?? 10_000n) as Fxp;
 }
 
 function frequencyMultiplier(value: GcsTraitV5["frequency"]): Fxp {
   const raw: Record<number, bigint> = {
-    6: 5_000n, 9: 10_000n, 12: 20_000n, 15: 30_000n, 18: 40_000n,
+    6: 5_000n,
+    9: 10_000n,
+    12: 20_000n,
+    15: 30_000n,
+    18: 40_000n,
   };
   return (raw[value ?? 0] ?? 10_000n) as Fxp;
 }
@@ -65,15 +81,22 @@ function* enabledLeaves(
 }
 
 function equalFractions(left: Fraction, right: Fraction): boolean {
-  return left.numerator === right.numerator && left.denominator === right.denominator;
+  return (
+    left.numerator === right.numerator && left.denominator === right.denominator
+  );
 }
 
 function clampLimitation(value: Fraction): Fraction {
-  return fractionValue(value) < NEGATIVE_EIGHTY ? fraction(NEGATIVE_EIGHTY) : value;
+  return fractionValue(value) < NEGATIVE_EIGHTY
+    ? fraction(NEGATIVE_EIGHTY)
+    : value;
 }
 
 function modifyPoints(points: Fraction, modifier: Fraction): Fraction {
-  return addFractions(points, divideFractions(multiplyFractions(points, modifier), fraction(HUNDRED)));
+  return addFractions(
+    points,
+    divideFractions(multiplyFractions(points, modifier), fraction(HUNDRED)),
+  );
 }
 
 export function calculateLeafTrait(
@@ -81,7 +104,12 @@ export function calculateLeafTrait(
   context: LeafContext,
 ): GcsTraitCalculationV5 {
   if (context.effectivelyDisabled) {
-    return Object.freeze({ kind: "trait", id: trait.id, currentLevel: ZERO, adjustedPoints: ZERO });
+    return Object.freeze({
+      kind: "trait",
+      id: trait.id,
+      currentLevel: ZERO,
+      adjustedPoints: ZERO,
+    });
   }
 
   const canLevel = trait.canLevel ?? false;
@@ -92,21 +120,37 @@ export function calculateLeafTrait(
   let levelLim = fraction(ZERO);
   let baseEnh = fraction(ZERO);
   let levelEnh = fraction(ZERO);
-  let multiplier = fraction(multiplyFxp(
-    selfControlMultiplier(trait.selfControlRoll),
-    frequencyMultiplier(trait.frequency),
-  ));
+  let multiplier = fraction(
+    multiplyFxp(
+      selfControlMultiplier(trait.selfControlRoll),
+      frequencyMultiplier(trait.frequency),
+    ),
+  );
 
-  const lists = [trait.modifiers ?? [], ...context.inheritedModifiers.map((one) => [one])];
+  const lists = [
+    trait.modifiers ?? [],
+    ...context.inheritedModifiers.map((one) => [one]),
+  ];
   for (const list of lists) {
     for (const mod of enabledLeaves(list)) {
       const levelMultiplier = mod.useLevelFromTrait
-        ? (canLevel && currentLevel(trait) > ZERO ? currentLevel(trait) : ONE)
-        : ((mod.levels ?? ZERO) > ZERO ? (mod.levels as Fxp) : ONE);
-      const adjustment = scaleCostAdjustment(parseCostAdjustment(mod.costAdjustment ?? ""), levelMultiplier);
+        ? canLevel && currentLevel(trait) > ZERO
+          ? currentLevel(trait)
+          : ONE
+        : (mod.levels ?? ZERO) > ZERO
+          ? (mod.levels as Fxp)
+          : ONE;
+      const adjustment = scaleCostAdjustment(
+        parseCostAdjustment(mod.costAdjustment ?? ""),
+        levelMultiplier,
+      );
       if (adjustment.kind === "addition") {
         if (mod.affects === "levels_only") {
-          if (canLevel) pointsPerLevel = addFxp(pointsPerLevel, fractionValue(adjustment.value));
+          if (canLevel)
+            pointsPerLevel = addFxp(
+              pointsPerLevel,
+              fractionValue(adjustment.value),
+            );
         } else {
           basePoints = addFxp(basePoints, fractionValue(adjustment.value));
         }
@@ -121,7 +165,10 @@ export function calculateLeafTrait(
           else levelEnh = addFractions(levelEnh, adjustment.value);
         }
       } else if (adjustment.kind === "percentage_multiplier") {
-        multiplier = divideFractions(multiplyFractions(multiplier, adjustment.value), fraction(HUNDRED));
+        multiplier = divideFractions(
+          multiplyFractions(multiplier, adjustment.value),
+          fraction(HUNDRED),
+        );
       } else {
         multiplier = multiplyFractions(multiplier, adjustment.value);
       }
@@ -130,23 +177,46 @@ export function calculateLeafTrait(
 
   let modifiedBase = fraction(basePoints);
   const leveled = fraction(multiplyFxp(pointsPerLevel, levels));
-  const hasPercentages = [baseLim, levelLim, baseEnh, levelEnh].some((value) => value.numerator !== ZERO);
+  const hasPercentages = [baseLim, levelLim, baseEnh, levelEnh].some(
+    (value) => value.numerator !== ZERO,
+  );
   if (!hasPercentages) {
     modifiedBase = addFractions(modifiedBase, leveled);
   } else if (context.useMultiplicativeModifiers) {
-    if (equalFractions(baseEnh, levelEnh) && equalFractions(baseLim, levelLim)) {
-      modifiedBase = modifyPoints(modifyPoints(addFractions(modifiedBase, leveled), baseEnh), clampLimitation(baseLim));
+    if (
+      equalFractions(baseEnh, levelEnh) &&
+      equalFractions(baseLim, levelLim)
+    ) {
+      modifiedBase = modifyPoints(
+        modifyPoints(addFractions(modifiedBase, leveled), baseEnh),
+        clampLimitation(baseLim),
+      );
     } else {
-      modifiedBase = modifyPoints(modifyPoints(modifiedBase, baseEnh), clampLimitation(baseLim));
-      modifiedBase = addFractions(modifiedBase, modifyPoints(modifyPoints(leveled, levelEnh), clampLimitation(levelLim)));
+      modifiedBase = modifyPoints(
+        modifyPoints(modifiedBase, baseEnh),
+        clampLimitation(baseLim),
+      );
+      modifiedBase = addFractions(
+        modifiedBase,
+        modifyPoints(
+          modifyPoints(leveled, levelEnh),
+          clampLimitation(levelLim),
+        ),
+      );
     }
   } else {
     const baseModifier = clampLimitation(addFractions(baseEnh, baseLim));
     const levelModifier = clampLimitation(addFractions(levelEnh, levelLim));
     if (equalFractions(baseModifier, levelModifier)) {
-      modifiedBase = modifyPoints(addFractions(modifiedBase, leveled), baseModifier);
+      modifiedBase = modifyPoints(
+        addFractions(modifiedBase, leveled),
+        baseModifier,
+      );
     } else {
-      modifiedBase = addFractions(modifyPoints(modifiedBase, baseModifier), modifyPoints(leveled, levelModifier));
+      modifiedBase = addFractions(
+        modifyPoints(modifiedBase, baseModifier),
+        modifyPoints(leveled, levelModifier),
+      );
     }
   }
 
@@ -154,6 +224,9 @@ export function calculateLeafTrait(
     kind: "trait",
     id: trait.id,
     currentLevel: currentLevel(trait),
-    adjustedPoints: applyFxpRounding(fractionValue(multiplyFractions(modifiedBase, multiplier)), trait.roundDown ?? false),
+    adjustedPoints: applyFxpRounding(
+      fractionValue(multiplyFractions(modifiedBase, multiplier)),
+      trait.roundDown ?? false,
+    ),
   });
 }

@@ -1,7 +1,5 @@
 export type GcsTraitCalculationErrorCode =
-  | "INVALID_OPTIONS"
-  | "CYCLE_DETECTED"
-  | "MAX_DEPTH_EXCEEDED";
+  "INVALID_OPTIONS" | "CYCLE_DETECTED" | "MAX_DEPTH_EXCEEDED";
 
 export class GcsTraitCalculationError extends Error {
   readonly code: GcsTraitCalculationErrorCode;
