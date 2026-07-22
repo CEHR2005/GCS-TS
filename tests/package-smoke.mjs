@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { URL } from "node:url";
 
 import {
   calculateGcsTraitPointsV5,
