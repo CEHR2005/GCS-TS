@@ -3,13 +3,14 @@
 This repository is the first, deliberately narrow slice of a future GURPS 4
 character manager. It provides a production TypeScript package that strictly
 parses and serializes GCS data version 5 and exposes conformant fixed-point,
-typed-ID, selected persisted-enum primitives, and a strict readonly projection
-of traits and trait modifiers. Test-only Go oracles prove the document round
-trip, primitive behavior, and known trait source fields against pinned upstream
-GCS sources.
+typed-ID, selected persisted-enum primitives, a strict readonly projection of
+traits and trait modifiers, and projection-first trait point calculation.
+Test-only Go oracles prove the document round trip, primitive behavior, known
+trait source fields, and trait-cost results against pinned upstream GCS
+sources.
 
-GURPS calculations, recalculation, trait mutation or write-back, Next.js, UI,
-persistence, and drag-and-drop are not part of this slice.
+Feature processing, full entity recalculation, trait mutation or write-back,
+Next.js, UI, persistence, and drag-and-drop are not part of this slice.
 
 ## Setup and verification
 
@@ -43,6 +44,7 @@ bit-for-bit reproducible or hermetic. Rebuild periodically with
 import {
   GcsParseError,
   GcsTraitProjectionError,
+  calculateGcsTraitPointsV5,
   parseGcsV5,
   projectGcsTraitsV5,
   serializeGcsV5,
@@ -52,6 +54,9 @@ try {
   const character = parseGcsV5(source);
   const traits = projectGcsTraitsV5(character);
   // Use the deeply frozen `traits` read model here.
+  const calculation = calculateGcsTraitPointsV5(traits, {
+    useMultiplicativeModifiers: false,
+  });
 
   // Keep the original document as the only supported serialization source.
   const exported = serializeGcsV5(character);
@@ -94,9 +99,17 @@ projection is unsupported and would lose unknown data.
 
 The projection is a read model only. It does not mutate source state, write
 changes back, calculate or recalculate values, or migrate or repair invalid
-data. The next engine slice may add calculation parity, including cost parsing
-and derived `calc` behavior, but it must remain separate from this readonly
-source projection.
+data. `calculateGcsTraitPointsV5` is a separate projection-first API and
+requires an explicit `useMultiplicativeModifiers` option rather than reading
+sheet settings from the document. It returns a deeply frozen calculation tree
+without mutating or aliasing the projection.
+
+Trait point calculation follows pinned GCS behavior under nil-entity
+semantics: persisted levels are used, while entity-derived feature bonuses are
+zero and full feature processing is not run. It does not interpret features,
+perform `Entity.Recalculate`, or write adjusted totals back into derived
+`calc`. Like parsing and projection, this calculation boundary supports only
+GCS data version 5.
 
 The primitives surface includes signed 64-bit fixed-point values at scale
 10,000, four trait-related typed-ID kinds backed by cryptographic randomness,
@@ -115,7 +128,7 @@ pin `github.com/richardwilkes/toolbox/v2` v2.15.0. They are test and CI oracles
 only; production code remains TypeScript-only and runtime-dependency-free.
 Curated conformance compares official GCS normalization before and after the
 TypeScript parse/serialize round trip and compares known projected trait source
-fields with pinned GCS decoding.
+fields and trait calculations in both modifier modes with pinned GCS behavior.
 
 Three unmodified fixtures come from GCS Master Library v5.12.0. Their upstream
 paths and exact SHA-256 digests are recorded in
@@ -156,5 +169,5 @@ process.
 MPL-2.0. The remainder of the monorepo is separately licensable; see the
 package license and `THIRD_PARTY_NOTICES.md`.
 
-Calculation parity is the next engine boundary; trait editing and write-back
+Feature processing, full entity recalculation, trait editing, and write-back
 remain separate later work. The web application also belongs to a later slice.

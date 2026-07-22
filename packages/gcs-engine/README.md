@@ -1,7 +1,7 @@
 # @gcs/gcs-engine
 
 Runtime-dependency-free GCS data version 5 parsing, serialization, engine
-primitives, and readonly typed trait projection.
+primitives, readonly typed trait projection, and trait point calculation.
 
 Machine-readable data-version support is declared in the package manifest's `gcsCapabilities` field.
 
@@ -88,11 +88,41 @@ projection. Keep that original `GcsDocumentV5` as the serialization source;
 reconstructing a document from projected nodes is unsupported and would drop
 unknown fields.
 
-This API is a read model. It performs no mutation, creation, deletion,
-write-back, point or cost calculation, `Recalculate` behavior, migration, or
-repair. Calculation parity—including interpretation of cost adjustments and
-derived `calc`—is the next engine boundary; editing and write-back remain a
-separate later slice.
+The projection API is a read model. It performs no mutation, creation,
+deletion, write-back, `Recalculate` behavior, migration, or repair. Trait point
+calculation is a separate projection-first operation; editing and write-back
+remain outside this package boundary.
+
+## Trait point calculation
+
+Call `calculateGcsTraitPointsV5` with the readonly result of
+`projectGcsTraitsV5`. The modifier mode is required explicitly; the calculator
+does not read sheet settings from the parsed document.
+
+```ts
+import {
+  calculateGcsTraitPointsV5,
+  parseGcsV5,
+  projectGcsTraitsV5,
+} from "@gcs/gcs-engine";
+
+const document = parseGcsV5(source);
+const traits = projectGcsTraitsV5(document);
+const calculation = calculateGcsTraitPointsV5(traits, {
+  useMultiplicativeModifiers: false,
+});
+```
+
+Calculation matches pinned GCS trait-cost behavior under nil-entity semantics:
+persisted levels participate, but entity-derived feature bonuses are zero and
+full `Entity.Recalculate` processing is not performed. The result contains
+only current levels, adjusted point totals, identity, and tree structure. It
+is deeply frozen, has no mutable aliases to the projection, and never mutates
+the original document or writes derived values into `calc`.
+
+This API supports only projected GCS data version 5 traits. It does not
+interpret features, calculate entity bonuses, read modifier settings from the
+document, or provide trait editing or calculated-value write-back.
 
 ## Fixed-point values
 
@@ -155,10 +185,14 @@ with a stable `code` and optional `path`.
 
 Trait conformance uses `tools/gcs-traits-oracle`, pinned to GCS v5.44.0 and
 Toolbox v2.15.0. It decodes canonical v5 trait data through upstream Go types
-and compares known source fields with the TypeScript projection. The oracle is
-used only by tests and CI: it is not shipped in this package, introduces no
-production Go requirement, and adds no runtime dependency. The upstream
-sources and translated package behavior are MPL-2.0; see the repository
-`THIRD_PARTY_NOTICES.md` for provenance.
+and compares known source fields and calculated trait costs with the
+TypeScript projection and calculator. The calculation oracle attaches traits
+to a minimal entity without feature processing, covering both modifier modes
+under the same nil-entity semantics. The oracle is used only by tests and CI:
+it is not shipped in this package, introduces no production Go requirement,
+and adds no runtime dependency. The upstream sources and translated package
+behavior are MPL-2.0; see the repository `THIRD_PARTY_NOTICES.md` for
+provenance. The canonical repository gate is
+`docker compose run --rm toolchain pnpm check`.
 
 This package is licensed under MPL-2.0. See [LICENSE](./LICENSE).
