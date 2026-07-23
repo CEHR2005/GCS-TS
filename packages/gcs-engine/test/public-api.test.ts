@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculateGcsTraitPointsV5,
   fxpToRaw,
   GCS_DATA_VERSION,
   GCS_TRAIT_PROJECTION_MAX_DEPTH,
@@ -8,6 +9,7 @@ import {
   parseGcsV5,
   projectGcsTraitsV5,
   serializeGcsV5,
+  type GcsTraitCalculationNodeV5,
 } from "@gcs/gcs-engine";
 
 const TRAIT_ID = "tAAECAwQFBgcICQoL";
@@ -35,5 +37,21 @@ describe("@gcs/gcs-engine public API", () => {
       throw new Error("expected a projected trait leaf");
     }
     expect(fxpToRaw(projected[0].basePoints!)).toBe(12_500n);
+  });
+
+  it("exposes trait calculation from the source package root", () => {
+    const projected = projectGcsTraitsV5(
+      parseGcsV5(
+        `{"version":5,"traits":[{"id":"${TRAIT_ID}","base_points":2}]}`,
+      ),
+    );
+    const calculated: readonly GcsTraitCalculationNodeV5[] | undefined =
+      calculateGcsTraitPointsV5(projected, {
+        useMultiplicativeModifiers: false,
+      });
+
+    expect(calculated?.[0]?.adjustedPoints).toBeDefined();
+    expect(fxpToRaw(calculated![0]!.adjustedPoints)).toBe(20_000n);
+    expect(Object.isFrozen(calculated)).toBe(true);
   });
 });

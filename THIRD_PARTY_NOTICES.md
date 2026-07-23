@@ -21,13 +21,17 @@ sources:
   - `model/fxp/int.go` and `model/fxp/int_test.go`
   - `model/gurps/enums/affects/`
   - `model/gurps/enums/container/`
+  - `model/gurps/enums/emweight/`
   - `model/gurps/enums/frequency/`
   - `model/gurps/enums/selfctrl/`
   - `model/gurps/enums/study/`
+  - `model/gurps/trait.go`
+  - `model/gurps/trait_modifier.go`
   - `model/kinds/kinds.go`
 - `richardwilkes/toolbox` tag `v2.15.0`
   ([source](https://github.com/richardwilkes/toolbox/tree/v2.15.0)):
   - `fixed/fixed64/int.go` and `fixed/fixed64/int_test.go`
+  - `fixed/fixed64/fraction.go`
   - `tid/tid.go` and its tests
 
 Both upstream repositories are licensed under the Mozilla Public License 2.0
@@ -37,11 +41,11 @@ test oracles; they are not production dependencies or vendored runtime code.
 `tools/gcs-traits-oracle` pins `github.com/richardwilkes/gcs/v5` v5.44.0 and
 `github.com/richardwilkes/toolbox/v2` v2.15.0 in its own `go.mod`. The JSONL
 oracle uses upstream `model/gurps`, `model/fxp`, and `tid` APIs to decode GCS
-data version 5 and project known trait and trait-modifier source fields for
-test comparison. It is built and run only by tests and CI. Opaque JSON
-retention and original-document serialization are verified in TypeScript and
-by the existing whole-document oracle rather than copied from the traits
-oracle.
+data version 5, project known trait and trait-modifier source fields, and
+calculate trait costs under nil-entity semantics for test comparison. It is
+built and run only by tests and CI. Opaque JSON retention and original-document
+serialization are verified in TypeScript and by the existing whole-document
+oracle rather than copied from the traits oracle.
 
 The MPL-2.0 boundary covers `packages/gcs-engine` and upstream-derived test and
 fixture material. This notice does not state or imply that the entire monorepo

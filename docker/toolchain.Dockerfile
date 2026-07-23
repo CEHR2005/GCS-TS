@@ -30,12 +30,15 @@ RUN go -C tools/gcs-traits-oracle build -o /usr/local/bin/gcs-traits-oracle ./cm
 FROM node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
 
 COPY --from=go-toolchain /usr/local/go /usr/local/go
+COPY --from=go-toolchain /go/pkg/mod /go/pkg/mod
 COPY --from=go-toolchain /usr/local/bin/gcs-oracle /usr/local/bin/gcs-oracle
 COPY --from=go-toolchain /usr/local/bin/gcs-primitives-oracle /usr/local/bin/gcs-primitives-oracle
 COPY --from=go-toolchain /usr/local/bin/gcs-traits-oracle /usr/local/bin/gcs-traits-oracle
 
 ENV PATH="/usr/local/go/bin:${PATH}" \
     GOCACHE=/tmp/go-build \
+    GOMODCACHE=/go/pkg/mod \
+    GOPROXY=off \
     GOEXPERIMENT=jsonv2 \
     CGO_ENABLED=1
 
